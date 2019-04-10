@@ -5,22 +5,17 @@ import lib.helper
 # from dir_manager import *
 def MINDID_Multi_Dims(dims, m, benchmarks, bucket_range):
 
-	dims = get_sub_dims(dims, bucket_range)
-	# Number of feature
-	feat_num = len(dims)
-
 	ret_MI = []
 	ret_delta = []
-
 	delta = 1
 	L = delta
 
+	dims = get_sub_dims(dims, bucket_range)
+	feat_num = len(dims)
+
 	for b_ith in range(1,benchmarks+1):
-		# my_string = '======================== Benchmark: '+str(b_ith)+'===================\n\n'
-		# print_result(f, my_string)
-		Q = compute_Q_Multi_Dims(b_ith, feat_num) # Check
-		range_cell = get_range_cell_1D(delta) # Check
-		# print('DIM: ',dims)
+		Q = compute_Q_Multi_Dims(b_ith, feat_num)
+		range_cell = get_range_cell_1D(delta)
 		nth_list = get_multi_ith_cell(dims, range_cell, Q, m)
 		sum_nth = 0
 		cluster_m_sum = nth_summation(nth_list, m)
@@ -32,15 +27,10 @@ def MINDID_Multi_Dims(dims, m, benchmarks, bucket_range):
 	###############
 
 		my_string = 'MI: '+str(MI)+'\n'
-		# print_result(f,my_string)
 		my_string = 'Q: '+str(Q)+'\n'
-		# print_result(f,my_string)
 		my_string = 'Sum(n): '+str(cluster_m_sum)+'\n'
-		# print_result(f,my_string)
 		my_string = 'Sum(N): '+str(N_m_sum)+'\n'
-		# print_result(f,my_string)
-		# print_result(f,'=========================================================\n\n')
-
+	
 		ret_delta.append(delta)
 		ret_MI.append(MI)
 
@@ -49,23 +39,17 @@ def MINDID_Multi_Dims(dims, m, benchmarks, bucket_range):
 
 	return ret_MI, ret_delta
 
-def MINDID_Multi_Dims_Norminator(dims, m, benchmarks, bucket_range):
-
-
-	dims = get_sub_dims(dims, bucket_range)
-
-	# Number of feature
-	feat_num = len(dims)
+def Cluster_Sum(dims, m, benchmarks, bucket_range):
 
 	ret_MI = []
 	ret_delta = []
-
 	delta = 1
 	L = delta
 
+	dims = get_sub_dims(dims, bucket_range)
+	feat_num = len(dims)
+
 	for b_ith in range(1,benchmarks+1):
-		# my_string = '======================== Benchmark: '+str(b_ith)+'===================\n\n'
-		# print_result(f, my_string)
 		Q = compute_Q_Multi_Dims(b_ith, feat_num) # Check
 		range_cell = get_range_cell_1D(delta) # Check
 		# print('DIM: ',dims)
@@ -74,20 +58,14 @@ def MINDID_Multi_Dims_Norminator(dims, m, benchmarks, bucket_range):
 		cluster_m_sum = nth_summation(nth_list, m)
 		N_m_sum = nth_summation([len(dims[0])], m)
 	
-
 	###############
 		MI = cluster_m_sum
 	###############
 
 		my_string = 'MI: '+str(MI)+'\n'
-		# print_result(f,my_string)
 		my_string = 'Q: '+str(Q)+'\n'
-		# print_result(f,my_string)
 		my_string = 'Sum(n): '+str(cluster_m_sum)+'\n'
-		# print_result(f,my_string)
 		my_string = 'Sum(N): '+str(N_m_sum)+'\n'
-		# print_result(f,my_string)
-		# print_result(f,'=========================================================\n\n')
 
 		ret_delta.append(delta)
 		ret_MI.append(MI)
@@ -107,14 +85,10 @@ def get_multi_ith_cell(dims, range_cell, Q, m):
 	feature_counter = 1
 
 	for feat in dims:
-		# print('----------- Feature '+str(feature_counter)+' ---------'+'\n')
-		# print_result(f, my_string)
 		for i in feat:
 			cell_num = 1
 			for r in range_cell:
 				if(i >= r[0] and i <= r[1]):
-					# print('Data: '+str(i)+' | Range: '+str(r)+' | Cell Number: '+str(cell_num)+'\n')
-					# print_result(f,my_string)
 					break # break 'r' loop
 				cell_num += 1
 			feat_ith_data.append(cell_num)
@@ -131,19 +105,13 @@ def get_multi_ith_cell(dims, range_cell, Q, m):
 		else:
 			cell_hash[final_dim[i]] = 1
 
-	# print_result(f,'--------------- End Of Feature ---------------')
-	# print('Summary of milestone: the following output gives us the dictioanry for hashing.')
-	# print('The key represents the 1 cell with 4 combinations of feature, their number represents')
-	# print('the intervel of where they belong to (3,2,4) represents 1st feature cell 3, 2nd feature cell 2, and so on')
-	# print('\n\n\n\n Hashing Result: '+str(cell_hash)+'\n\n')
-	# print_result(f,my_string)
 
 	for freq in cell_hash.values():
 		if(freq >= m):
 			n_ith_arr.append(freq)
 
 
-	return(n_ith_arr)
+	return (n_ith_arr)
 
 
 '''
@@ -201,6 +169,8 @@ def get_sub_dims(dims, bucket_range):
 		sub_dims.append(sub_feat)
 		sub_feat = []
 	return sub_dims
+
+
 
 
 def append_data(dims, data):

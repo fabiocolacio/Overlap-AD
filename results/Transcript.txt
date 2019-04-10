@@ -1,0 +1,45 @@
+AAPL_500_stables_15900_forgivenIndex_0
+=== Total classification ===
+Normal:  14882
+Anomaly:  518
+
+AAPL_500_stables_15900_forgivenIndex_1
+=== Total classification ===
+Normal:  15054
+Anomaly:  346
+
+
+AAPL_500_stables_15900_forgivenIndex_2
+=== Total classification ===
+Normal:  15170
+Anomaly:  230
+
+AAPL_500_stables_15900_forgivenIndex_3
+=== Total classification ===
+Normal:  15252
+Anomaly:  148
+
+AAPL_500_stables_15900_forgivenIndex_4
+=== Total classification ===
+Normal:  15312
+Anomaly:  88
+
+AAPL_500_stables_15900_forgivenIndex_5
+=== Total classification ===
+Normal:  15350
+Anomaly:  50
+
+AAPL_500_stables_15900_forgivenIndex_6
+=== Total classification ===
+Normal:  15374
+Anomaly:  26
+
+AAPL_500_stables_15900_forgivenIndex_7
+=== Total classification ===
+Normal:  15390
+Anomaly:  10
+
+AAPL_500_stables_15900_forgivenIndex_8
+=== Total classification ===
+Normal:  15382
+Anomaly:  18

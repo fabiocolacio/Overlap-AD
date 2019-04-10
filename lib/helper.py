@@ -278,14 +278,6 @@ def create_day_timestamp(NxE):
 
 
 
-	# with open(text_file_path) as f:
-	# 	with open('nab_data/s1.csv', 'w') as csv_out:
-	# 		spamwriter = csv.writer(csv_out)
-	# 		for line in f:
-	# 			data = line.split()
-	# 			spamwriter.writerow(data)
-			
-
 '''
 	Minimize the data into range 0 to 1 via divider of max base 10
     Param:	2D matrix
@@ -335,7 +327,7 @@ def compute_MI_peek(MI_arr):
 			peek_benchmark = i
 	return peek_MI, peek_delta, peek_benchmark
 
-def compute_LCE(MI_arr):
+def compute_LCE_index(MI_arr):
 	LCE_benchmark = 0
 	for i in range(0, len(MI_arr[0])):
 		if(MI_arr[0][i] > 0):
@@ -343,6 +335,18 @@ def compute_LCE(MI_arr):
 	return LCE_benchmark
 
 
+def get_last_normal_MI(MI_0, MI_1, MI_2):
+	index = 1
+	inverse = False
+	for i in range(1, len(MI_0)):
+		if(MI_0[i] < MI_1[i] and MI_1[i] < MI_2[i]):
+			index += 1
+			inverse = True
+		elif(inverse):
+			return index
+		else:
+			pass
+	return -1
 
 
 def start_MI_computation(dims, bucket_range, benchmarks):

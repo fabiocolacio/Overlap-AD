@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser(description='Perform data anomaly detection wit
 parser.add_argument(dest='dataset', type=str, help='Choose: AAPL, GOOG, FB, IBM')
 parser.add_argument(dest='sample_size', type=int, help='the size of a training data')
 parser.add_argument(dest='end_sub_sample', type=int, help='maximum data to observe')
+parser.add_argument(dest='forgiven_index', type=int, help='forgiven_index: (int)')
 args = parser.parse_args()
 
 ################################################################
@@ -16,6 +17,7 @@ args = parser.parse_args()
 import sys
 import matplotlib
 import numpy as np
+import pandas as pd
 import lib.helper as hp
 import lib.scaler as scaler
 import lib.dir_manager as dm
@@ -32,7 +34,7 @@ fig = plt.figure()
 # Parsing argument(s) to variable(s) #
 b2 = args.sample_size
 cap_data = args.end_sub_sample
-
+forgiven_index = args.forgiven_index
 
 MI_array = []
 dims = []
@@ -43,41 +45,53 @@ i = 1
 benchmarks = 15
 result_list = []
 
+
 ''' '''
 
-dataset = hp.csv_extraction('./nab/realTweets/realTweets/Twitter_volume_'+str(args.dataset)+'.csv',1)
+# dataset = hp.csv_extraction('./nab/realTweets/realTweets/Twitter_volume_'+str(args.dataset)+'.csv',1)
 
-timestamp = hp.get_col(dataset, 0)
-tweetCount = hp.get_col(dataset, 1)
+data = pd.read_csv('./nab/realTweets/realTweets/Twitter_volume_'+str(args.dataset)+'.csv')
 
-arr_month, arr_date, arr_time, arr_tweet = hp.disect_dimensions(timestamp, tweetCount, 0, cap_data+2) # cluster_x is timestamp, cluster_y is tweets number
+timestamp = np.array(data['timestamp'])
+value = np.array(data['value'])
+datastamp = list(range(0, len(timestamp)))
 
-arr_tweet = list(map(int, arr_tweet))
-dims.append(arr_tweet)
+# timestamp = hp.get_col(dataset, 0)
+# tweetCount = hp.get_col(dataset, 1)
+
+# arr_month, arr_date, arr_time, arr_tweet = hp.disect_dimensions(timestamp, tweetCount, 0, cap_data+2) # cluster_x is timestamp, cluster_y is tweets number
+
+# arr_tweet = list(map(int, arr_tweet))
+# dims[0] = datastamp, dims[1] = timestamp, dims[2] = value
+dims.append(datastamp)
+dims.append(timestamp)
+dims.append(value)
 
 
 # Initialize the range of interval to observe data.
 #	For example, if b2 = 100, we start observe b2+1 because
 #	b2 has a stable data we trust for cluster. cap_data
 #	represents the cap of data we want to examine.
-total_timestamp = list(range(b2+1, cap_data+1))
+# total_timestamp = list(range(b2+1, cap_data+1))
 mid_graph = max(dims[0][b2+1:cap_data+2]) / 2
 
-main_bucket_size = [0, b2]
-observe_1_bucket_size = [0, b2 + 1]
-observe_2_bucket_size = [0, b2 + 2]
+t0_size = [0, b2]
+t1_size = [0, b2 + 1]
+t2_size = [0, b2 + 2]
 
 while(i < cap_data - b2 + 1):
 	print('\n\n\n============= Timestamp Number: ', str(i+b2), ' =============')
 	# Definted window's sizes
-	main_bucket = [b1+i, b2+i]
-	observe_1_bucket = [b1+i, b2+i +1]
-	observe_2_bucket = [b1+i, b2+i +2]
+	t0_wz = [b1+i, b2+i]
+	t1_wz = [b1+i, b2+i +1]
+	t2_wz = [b1+i, b2+i +2]
 
 	# Get each window into 3 instances
-	main_dims = mi.get_sub_dims(dims, main_bucket)
-	observe_1_dims = mi.get_sub_dims(dims, observe_1_bucket)
-	observe_2_dims = mi.get_sub_dims(dims, observe_2_bucket)
+	t0_sub_dim = mi.get_sub_dims(dims, t0_wz)
+	t1_sub_dim = mi.get_sub_dims(dims, t1_wz)
+	t2_sub_dim = mi.get_sub_dims(dims, t2_wz)
+
+	# print(t0_sub_dim)
 
 	# Pre-define the scale for this current iteration 
 	# We take max and min from all 3 windows at this iteration because
@@ -85,80 +99,80 @@ while(i < cap_data - b2 + 1):
 	#	Remember, LCE is purely based on data stabality on the dimension,
 	#	thus, NO data should be rescaled or move when comparison between
 	#	windows happen.
-	all_min = min(min(main_dims[0]), min(observe_1_dims[0]), min(observe_2_dims[0]))
-	all_max = max(max(main_dims[0]), max(observe_1_dims[0]), max(observe_2_dims[0]))
+	all_min = min(min(t0_sub_dim[2]), min(t1_sub_dim[2]), min(t2_sub_dim[2]))
+	all_max = max(max(t0_sub_dim[2]), max(t1_sub_dim[2]), max(t2_sub_dim[2]))
 
 
-	# Scale 3 windows based on min and max of their 3 windows.
-	scaled_main = scaler.scale_data(main_dims[0], all_min, all_max)
-	scaled_obs_1 = scaler.scale_data(observe_1_dims[0], all_min, all_max)
-	scaled_obs_2 = scaler.scale_data(observe_2_dims[0], all_min, all_max)
+	# # Scale 3 windows based on min and max of their 3 windows.
+	scaled_t0 = scaler.scale_data(t0_sub_dim[2], all_min, all_max)
+	scaled_t1 = scaler.scale_data(t1_sub_dim[2], all_min, all_max)
+	scaled_t2 = scaler.scale_data(t2_sub_dim[2], all_min, all_max)
 
-	print('Max observe data : ', observe_2_dims)
-	# print('Scaled Main      : ', scaled_main)
-	# print('Scaled Obs 1     : ', scaled_obs_1)
-	# print('Scaled Obs 2     : ', scaled_obs_2)
+	# print('Max observe data : ', observe_2_dims)
+	# print('Scaled t0      : ', scaled_t0)
+	# print('Scaled t1      : ', scaled_t1)
+	# print('Scaled t2      : ', scaled_t2)
 
 	print('All min: ', all_min)
 	print('All max: ', all_max)
 
-	print()
+	# print()
 
-	# Extra, no need to worry about this for now
-	MI_main = mi.MINDID_Multi_Dims([scaled_main], m, 15, main_bucket_size)
-	MI_obs_1 = mi.MINDID_Multi_Dims([scaled_obs_1], m, 15, observe_1_bucket_size)
-	MI_obs_2 = mi.MINDID_Multi_Dims([scaled_obs_2], m, 15, observe_2_bucket_size)
+	# # Extra, no need to worry about this for now
+	# MI_main = mi.MINDID_Multi_Dims([scaled_main], m, 15, main_bucket_size)
+	# MI_obs_1 = mi.MINDID_Multi_Dims([scaled_obs_1], m, 15, observe_1_bucket_size)
+	# MI_obs_2 = mi.MINDID_Multi_Dims([scaled_obs_2], m, 15, observe_2_bucket_size)
 
-	# Removing duplicates so that each precise number is unique and does not
-	#	cause infinite LCE value
-	main_dims = [list(dict.fromkeys(scaled_main))]
-	observe_1_dims = [list(dict.fromkeys(scaled_obs_1))]
-	observe_2_dims = [list(dict.fromkeys(scaled_obs_2))]
+	# # Removing duplicates so that each precise number is unique and does not
+	# #	cause infinite LCE value
+	scaled_set_t0 = [list(dict.fromkeys(scaled_t0))]
+	scaled_set_t1 = [list(dict.fromkeys(scaled_t1))]
+	scaled_set_t2 = [list(dict.fromkeys(scaled_t2))]
 
-	# print('Non dupe Main      : ', main_dims)
-	# print('Non dupe Observe 1 : ', observe_1_dims)
-	# print('Non dupe Observe 2 : ', observe_2_dims)
+	# print('Non dupe Main      : ', scaled_set_t0)
+	# print('Non dupe Observe 1 : ', scaled_set_t1)
+	# print('Non dupe Observe 2 : ', scaled_set_t2)
 
-	# Define bucket sizes after duplicates have been removed
-	main_bucket_size = [0, len(main_dims[0])]
-	observe_1_bucket_size = [0, len(observe_1_dims[0])]
-	observe_2_bucket_size = [0, len(observe_2_dims[0])]
+	# # Define bucket sizes after duplicates have been removed
+	t0_set_wz = [0, len(scaled_set_t0[0])]
+	t1_set_wz = [0, len(scaled_set_t1[0])]
+	t2_set_wz = [0, len(scaled_set_t2[0])]
 
 	
-	# Compute the score of LCE, this will result in list of cluster sum
-	CS_main_LCE = mi.MINDID_Multi_Dims_Norminator(main_dims, m, 10, main_bucket_size)
-	CS_obs_1_LCE = mi.MINDID_Multi_Dims_Norminator(observe_1_dims, m, 10, observe_1_bucket_size)
-	CS_obs_2_LCE = mi.MINDID_Multi_Dims_Norminator(observe_2_dims, m, 10, observe_2_bucket_size)
+	# # Compute the score of LCE, this will result in list of cluster sum
+	CS_t0_LCE = mi.Cluster_Sum(scaled_set_t0, m, 10, t0_set_wz)
+	CS_t1_LCE = mi.Cluster_Sum(scaled_set_t1, m, 10, t1_set_wz)
+	CS_t2_LCE = mi.Cluster_Sum(scaled_set_t2, m, 10, t2_set_wz)
 
-	# Get the LCE index
-	t0_LCE = hp.compute_LCE(CS_main_LCE)
-	t1_LCE = hp.compute_LCE(CS_obs_1_LCE)
-	t2_LCE = hp.compute_LCE(CS_obs_2_LCE)
-
-
-	# print('MI_t0: ', CS_main_LCE[0])
-	# print('MI_t1: ', CS_obs_1_LCE[0])
-	# print('MI_t2: ', CS_obs_2_LCE[0])
+	# # Get the LCE index
+	t0_LCE = hp.compute_LCE_index(CS_t0_LCE)
+	t1_LCE = hp.compute_LCE_index(CS_t1_LCE)
+	t2_LCE = hp.compute_LCE_index(CS_t2_LCE)
 
 
-	print('#######################\n')
+	# print('MI_t0: ', t0_LCE)
+	# print('MI_t1: ', t1_LCE)
+	# print('MI_t2: ', t2_LCE)
 
 
-	print('Length t0: ', len(main_dims[0]))
-	print('Length t1: ', len(observe_1_dims[0]))
-	print('Length t2: ', len(observe_2_dims[0]))
+	# print('#######################\n')
 
-	print('t0 LCE: ',CS_main_LCE[0])
-	print('t1 LCE: ',CS_obs_1_LCE[0])
-	print('t2 LCE: ',CS_obs_2_LCE[0])
 
-	print()
-	print('#######################\n')
+	# print('Length t0: ', len(scaled_set_t0[0]))
+	# print('Length t1: ', len(scaled_set_t1[0]))
+	# print('Length t2: ', len(scaled_set_t2[0]))
+
+	# print('t0 LCE: ',CS_main_LCE[0])
+	# print('t1 LCE: ',CS_obs_1_LCE[0])
+	# print('t2 LCE: ',CS_obs_2_LCE[0])
+
+	# print()
+	# print('#######################\n')
 
 
 	# Start codition
-	if( (len(main_dims[0]) == len(observe_1_dims[0]) or len(observe_1_dims[0]) == len(observe_2_dims[0])) or
-		(CS_main_LCE[0][t0_LCE] < CS_obs_1_LCE[0][t1_LCE] or CS_obs_1_LCE[0][t1_LCE] < CS_obs_2_LCE[0][t2_LCE])):
+	if( (len(scaled_set_t0[0]) == len(scaled_set_t1[0]) or len(scaled_set_t1[0]) == len(scaled_set_t2[0])) or
+		(CS_t0_LCE[0][t0_LCE - forgiven_index] < CS_t1_LCE[0][t1_LCE - forgiven_index] or CS_t1_LCE[0][t1_LCE - forgiven_index] < CS_t2_LCE[0][t2_LCE - forgiven_index])):
 		result_list.append(0)
 	else:
 		result_list.append(mid_graph)
@@ -180,19 +194,19 @@ print("=== Total classification ===")
 print('Normal: ', N)
 print('Anomaly: ', A)
 
-# Plot results
+# # Plot results
 
 # Plot data
-result, = plt.plot(total_timestamp, result_list, '^', markersize=np.sqrt(10.), c='r')
+result, = plt.plot(datastamp[0:len(result_list)], result_list, '^', markersize=np.sqrt(10.), c='r')
 # fig.savefig('./results', dpi=500)
 # plt.clf()
 
-# Plot actual data
-origin, = plt.plot(total_timestamp, dims[0][b2:cap_data], 'o', markersize=np.sqrt(10.), c='b')
+# # Plot actual data
+origin, = plt.plot(datastamp[0:len(result_list)], dims[2][b2:cap_data], 'o', markersize=np.sqrt(10.), c='b')
 plt.title('Anomaly Detection on NAB on '+ str(args.dataset))
 plt.ylabel('Tweet Numbers')
 plt.xlabel('Timestamp')
 plt.legend([result, origin], ['Anomaly', 'Data'])
 dm.mkdir('results')
-fig.savefig('./results/'+str(args.dataset)+"_"+str(b2)+"_stables", dpi=500)
+fig.savefig('./results/'+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data)+"_forgivenIndex_"+str(forgiven_index), dpi=500)
 plt.clf()
