@@ -47,6 +47,7 @@ if __name__ == "__main__":
 	i = 1
 	N = 0
 	A = 0
+	init_cap = cap_data - 2
 	benchmarks = 15
 	result_list = []
 	result_timestamp = []
@@ -75,16 +76,32 @@ if __name__ == "__main__":
 	# total_timestamp = list(range(b2+1, cap_data+1))
 	mid_graph = max(dims[2][b2+1:cap_data+2]) / 2
 
-	t0_size = [0, b2]
-	t1_size = [0, b2 + 1]
-	t2_size = [0, b2 + 2]
+	
 
 	while(i < cap_data - b2 + 1):
 		print('\n\n\n============= Timestamp Number: ', str(i+b2), ' =============')
-		# Definted window's sizes
-		t0_wz = [b1+i, b2+i]
-		t1_wz = [b1+i, b2+i +1]
-		t2_wz = [b1+i, b2+i +2]
+		
+		if(init_cap > 0):
+			# Definted window's sizes
+			t0_wz = [0, b2+i - init_cap]
+			t1_wz = [0, b2+i +1 - init_cap]
+			t2_wz = [0, b2+i +2 - init_cap]
+
+			t0_size = [0, b2 - init_cap]
+			t1_size = [0, b2 + 1 - init_cap]
+			t2_size = [0, b2 + 2 - init_cap]
+
+			init_cap -= 1
+
+		else:
+			t0_wz = [b1+i, b2+i]
+			t1_wz = [b1+i, b2+i +1]
+			t2_wz = [b1+i, b2+i +2]
+
+			t0_size = [0, b2]
+			t1_size = [0, b2 + 1]
+			t2_size = [0, b2 + 2]
+
 
 		# Get each window into 3 instances
 		t0_sub_dim = mi.get_sub_dims(dims, t0_wz)
