@@ -8,7 +8,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Perform data anomaly detection with LCE')
 parser.add_argument(dest='dataset', type=str, help='Choose: AAPL, GOOG, FB, IBM')
 parser.add_argument(dest='sample_size', type=int, help='the size of a training data')
-parser.add_argument(dest='end_sub_sample', type=int, help='maximum data to observe')
+# parser.add_argument(dest='end_sub_sample', type=int, help='maximum data to observe')
 parser.add_argument(dest='forgiven_index', type=int, help='forgiven_index: (int)')
 args = parser.parse_args()
 
@@ -36,7 +36,7 @@ fig = plt.figure()
 if __name__ == "__main__":
 	# Parsing argument(s) to variable(s) #
 	b2 = args.sample_size
-	cap_data = args.end_sub_sample
+	# cap_data = args.end_sub_sample
 	forgiven_index = args.forgiven_index
 
 	MI_array = []
@@ -60,6 +60,7 @@ if __name__ == "__main__":
 	timestamp = np.array(data['timestamp'])
 	value = np.array(data['value'])
 	datastamp = list(range(0, len(timestamp)))
+	cap_data = len(datastamp) - 2
 	
 
 	# dims[0] = datastamp, dims[1] = timestamp, dims[2] = value
@@ -178,7 +179,7 @@ if __name__ == "__main__":
 		i += 1
 
 	for d in result_list:
-		if(d == -1):
+		if(d == -50):
 			N += 1
 		else:
 			A += 1
