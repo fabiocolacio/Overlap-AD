@@ -421,3 +421,8 @@ def start_MI_computation_Norminator(dims, bucket_range, benchmarks):
 	
 
 	return MI_array
+
+
+def output(str):
+	print(str)
+	return str+'\n'
