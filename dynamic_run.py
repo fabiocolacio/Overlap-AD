@@ -8,8 +8,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Perform data anomaly detection with LCE')
 parser.add_argument(dest='dataset', type=str, help='Choose: AAPL, GOOG, FB, IBM')
 parser.add_argument(dest='sample_size', type=int, help='the size of a training data')
-parser.add_argument(dest='end_sub_sample', type=int, help='maximum data to observe')
-parser.add_argument(dest='forgiven_index', type=int, help='forgiven_index: (int)')
+# parser.add_argument(dest='end_sub_sample', type=int, help='maximum data to observe')
+# parser.add_argument(dest='forgiven_index', type=int, help='forgiven_index: (int)')
 args = parser.parse_args()
 
 ################################################################
@@ -36,8 +36,8 @@ fig = plt.figure()
 if __name__ == "__main__":
 	# Parsing argument(s) to variable(s) #
 	b2 = args.sample_size
-	cap_data = args.end_sub_sample
-	forgiven_index = args.forgiven_index
+	# cap_data = args.end_sub_sample
+	# forgiven_index = args.forgiven_index
 
 	MI_array = []
 	dims = []
@@ -47,9 +47,11 @@ if __name__ == "__main__":
 	i = 1
 	N = 0
 	A = 0
-	init_cap = cap_data - 2
+
 	benchmarks = 15
 	result_list = []
+	result_list.append(-100)
+	
 	result_timestamp = []
 
 
@@ -61,12 +63,16 @@ if __name__ == "__main__":
 	timestamp = np.array(data['timestamp'])
 	value = np.array(data['value'])
 	datastamp = list(range(0, len(timestamp)))
+
 	
 
 	# dims[0] = datastamp, dims[1] = timestamp, dims[2] = value
 	dims.append(datastamp)
 	dims.append(timestamp)
 	dims.append(value)
+
+	cap_data = len(datastamp)
+	init_cap = b2 - 2
 
 
 	# Initialize the range of interval to observe data.
@@ -78,25 +84,24 @@ if __name__ == "__main__":
 
 	
 
-	while(i < cap_data - b2 + 1):
-		print('\n\n\n============= Timestamp Number: ', str(i+b2), ' =============')
+	while(i < cap_data - 2):
+		print('\n\n\n============= Timestamp Number: ', str(i), ' =============')
 		
-		if(init_cap > 0):
+		if(i < b2+1):
 			# Definted window's sizes
-			t0_wz = [0, b2+i - init_cap]
-			t1_wz = [0, b2+i +1 - init_cap]
-			t2_wz = [0, b2+i +2 - init_cap]
+			t0_wz = [0, i ]
+			t1_wz = [0, i +1 ]
+			t2_wz = [0, i +2 ]
 
-			t0_size = [0, b2 - init_cap]
-			t1_size = [0, b2 + 1 - init_cap]
-			t2_size = [0, b2 + 2 - init_cap]
+			t0_size = [0, i ]
+			t1_size = [0, i + 1 ]
+			t2_size = [0, i + 2 ]
 
-			init_cap -= 1
 
 		else:
-			t0_wz = [b1+i, b2+i]
-			t1_wz = [b1+i, b2+i +1]
-			t2_wz = [b1+i, b2+i +2]
+			t0_wz = [b1+i - b2, i]
+			t1_wz = [b1+i - b2, i +1]
+			t2_wz = [b1+i - b2, i +2]
 
 			t0_size = [0, b2]
 			t1_size = [0, b2 + 1]
@@ -184,13 +189,14 @@ if __name__ == "__main__":
 
 		# Start codition
 		if( (len(scaled_set_t0[0]) == len(scaled_set_t1[0]) or len(scaled_set_t1[0]) == len(scaled_set_t2[0])) or
-			(CS_t0_LCE[0][t0_LCE - forgiven_index] < CS_t1_LCE[0][t1_LCE - forgiven_index] or CS_t1_LCE[0][t1_LCE - forgiven_index] < CS_t2_LCE[0][t2_LCE - forgiven_index])):
-			result_list.append(-50)
+			(CS_t0_LCE[0][t0_LCE] < CS_t1_LCE[0][t1_LCE] or CS_t1_LCE[0][t1_LCE] < CS_t2_LCE[0][t2_LCE])):
+			result_list.append(-100)
 
 		else:
 			result_list.append(mid_graph)
 			result_timestamp.append(dims[1][i])
 
+		print("t0 window: ", t0_wz)
 		# print('Result', result_list)
 		i += 1
 
@@ -206,9 +212,12 @@ if __name__ == "__main__":
 	print('Anomaly: ', A)
 	print()
 
+	result_list.append(-100)
+	result_list.append(-100)
 
 
-	f = open("./transcript_"+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data)+"_forgivenIndex_"+str(forgiven_index)+".txt", "w")
+
+	f = open("./transcript_"+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data)+".txt", "w")
 
 	ground_truth_timestamps = []
 
@@ -221,7 +230,7 @@ if __name__ == "__main__":
  			ground_truth_timestamps.append(windows)
 	print()
 
-	ground_truth_datastamp_list = [-50] * len(datastamp)
+	ground_truth_datastamp_list = [-100] * len(datastamp)
 
 	for i in range(1, len(ground_truth_datastamp_list)):
 		if(dims[1][i] in ground_truth_timestamps):
@@ -240,19 +249,18 @@ if __name__ == "__main__":
 	print()
 
 	# Plot data
-	result, = plt.plot(datastamp[b2+1:cap_data+1], result_list, '^', markersize=np.sqrt(10.), c='r')
+	result, = plt.plot(datastamp[0:cap_data], result_list, '^', markersize=np.sqrt(10.), c='r')
 	# plt.clf()
-	ground_truth_datastamp, = plt.plot(datastamp[0:len(datastamp)], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='m')
+	ground_truth_datastamp, = plt.plot(datastamp[0:cap_data], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='y')
 
+	origin, = plt.plot(datastamp[0:cap_data], dims[2][0:cap_data], 'o', markersize=np.sqrt(10.), c='b')
 
-	# # Plot actual data
-	origin, = plt.plot(datastamp[b2+1:cap_data+1], dims[2][b2:cap_data], 'o', markersize=np.sqrt(10.), c='b')
 	plt.title('Anomaly Detection on NAB on '+ str(args.dataset))
 	plt.ylabel('Tweet Numbers')
 	plt.xlabel('Timestamp')
 	plt.ylim(bottom=0)
 	plt.legend([result, ground_truth_datastamp, origin], ['Anomaly', 'Ground Truth', 'Data'])
 	dm.mkdir('results')
-	fig.savefig('./results/'+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data)+"_forgivenIndex_"+str(forgiven_index), dpi=300)
+	fig.savefig('./results/'+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data), dpi=300)
 	plt.clf()
 	f.close()
