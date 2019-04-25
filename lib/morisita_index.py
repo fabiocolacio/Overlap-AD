@@ -34,6 +34,7 @@ def MINDID_Multi_Dims(dims, m, benchmarks, bucket_range):
 		ret_delta.append(delta)
 		ret_MI.append(MI)
 
+
 		delta = delta / 2
 
 

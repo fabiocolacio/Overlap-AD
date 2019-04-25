@@ -105,8 +105,6 @@ def get_last_normal_MI(MI_0, MI_1, MI_2):
 	return -1
 
 
-
-
 def output(str):
 	print(str)
 	return str+'\n'

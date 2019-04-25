@@ -44,15 +44,15 @@ if __name__ == "__main__":
 	matplot_color = ['b','g','r','c','m','y','k','w']
 	b1 = 0
 	m = 2
-	i = 5
+	i = 20
 	benchmarks = 15
 
 	result_list = []
-	result_list.append(-100)
-	result_list.append(-100)
-	result_list.append(-100)
-	result_list.append(-100)
+	for k in range(0, i - 1):
+		result_list.append(-100)
 
+	
+	
 	result_timestamp = []
 
 
@@ -80,8 +80,8 @@ if __name__ == "__main__":
 	#	b2 has a stable data we trust for cluster. cap_data
 	#	represents the cap of data we want to examine.
 	# total_timestamp = list(range(b2+1, cap_data+1))
-	mid_graph = max(dims[2][b2+1:cap_data+2]) / 2
-	while(i < cap_data + 1): # Last 2 data will not be classified
+	mid_graph = max(dims[2][0:cap_data+2]) / 2
+	while(i < cap_data): # Last 2 data will not be classified
 		print('\n\n\n============= Timestamp Number: ', str(i), ' =============')
 		
 		if(i < b2+1):
@@ -189,8 +189,7 @@ if __name__ == "__main__":
 	print()
 
 
-	ground_truth_datastamp_list = [-100] * len(datastamp)
-	ground_truth_window_list = [-100] * len(datastamp)
+	ground_truth_datastamp_list = [-100] * (len(datastamp) - 1)
 
 	for i in range(1, len(ground_truth_datastamp_list)):
 		if(dims[1][i] in ground_truth_timestamps):
@@ -203,8 +202,6 @@ if __name__ == "__main__":
 		for windows in data['realTweets/Twitter_volume_'+str(args.dataset)+'.csv']:
 			f.write(hp.output(str(windows)))
 
-	
-
 
 
 	f.write(hp.output('=== Our Anomaly Timestamps ==='))
@@ -213,11 +210,11 @@ if __name__ == "__main__":
 	print()
 
 	# Plot data
-	result, = plt.plot(datastamp[0:cap_data], result_list, '^', markersize=np.sqrt(10.), c='r')
+	result, = plt.plot(datastamp[1:cap_data], result_list, '^', markersize=np.sqrt(10.), c='r')
 	# plt.clf()
-	ground_truth_datastamp, = plt.plot(datastamp[0:cap_data], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='y')
+	ground_truth_datastamp, = plt.plot(datastamp[1:cap_data], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='y')
 
-	origin, = plt.plot(datastamp[0:cap_data], dims[2][0:cap_data], 'o', markersize=np.sqrt(10.), c='b')
+	origin, = plt.plot(datastamp[1:cap_data], dims[2][1:cap_data], 'o', markersize=np.sqrt(10.), c='b')
 
 
 
@@ -233,7 +230,7 @@ if __name__ == "__main__":
 
 	tp, tn, fp, fn, ud = 0, 0, 0, 0, 0
 
-	for i in range(0,len(datastamp)):
+	for i in range(0,len(datastamp)-1):
 
 		result, ground_truth = result_list[i], ground_truth_datastamp_list[i]
 
