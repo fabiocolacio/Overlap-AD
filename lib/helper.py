@@ -83,12 +83,13 @@ def compute_MI_peek(MI_arr):
 			peek_benchmark = i
 	return peek_MI, peek_delta, peek_benchmark
 
-def compute_LCE_index(MI_arr):
+def compute_LCE_index_val(LCE):
 	LCE_benchmark = 0
-	for i in range(0, len(MI_arr[0])):
-		if(MI_arr[0][i] > 0):
+	for i in range(0, len(LCE[0])):
+		if(LCE[0][i] > 0):
 			LCE_benchmark = i
-	return LCE_benchmark
+			LCE_val = LCE[0][i]
+	return LCE_benchmark, LCE_val
 
 
 def get_last_normal_MI(MI_0, MI_1, MI_2):
@@ -104,7 +105,27 @@ def get_last_normal_MI(MI_0, MI_1, MI_2):
 			pass
 	return -1
 
+def pending_state(t1, t2):
+
+	return 0
+
+def check_grey_cell(result_list, t2_anomaly):
+	if(result_list[-1] == 0 and t2_anomaly): # Grey cell
+
+		pass
+	elif(result_list[-1] == -1): # Black cell
+		pass
+	elif(result_list[-1] == 1): # White cell
+		pass
+	else: # Invalid
+		pass
+
+def deque_list(data, num_data):
+	ret_pop_data = list(data[:num_data])
+	ret_origin_data = list(data[num_data:])
+	return ret_pop_data, ret_origin_data
 
 def output(str):
 	print(str)
 	return str+'\n'
+
