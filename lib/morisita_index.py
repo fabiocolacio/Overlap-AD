@@ -40,22 +40,18 @@ def MINDID_Multi_Dims(dims, m, benchmarks, bucket_range):
 
 	return ret_MI, ret_delta
 
+
 def Cluster_Sum(dims, m, benchmarks):
 
 	ret_MI = []
 	ret_delta = []
 	delta = 1
-	L = delta
-
 	dims = [dims]
-
-	# dims = get_sub_dims(dims, bucket_range)
 	feat_num = len(dims)
 
 	for b_ith in range(1,benchmarks+1):
-		Q = compute_Q_Multi_Dims(b_ith, feat_num) # Check
-		range_cell = get_range_cell_1D(delta) # Check
-		# print('DIM: ',dims)
+		Q = compute_Q_Multi_Dims(b_ith, feat_num)
+		range_cell = get_range_cell_1D(delta)
 		nth_list = get_multi_ith_cell(dims, range_cell, Q, m)
 		sum_nth = 0
 		cluster_m_sum = nth_summation(nth_list, m)
@@ -64,11 +60,6 @@ def Cluster_Sum(dims, m, benchmarks):
 	###############
 		MI = cluster_m_sum
 	###############
-
-		my_string = 'MI: '+str(MI)+'\n'
-		my_string = 'Q: '+str(Q)+'\n'
-		my_string = 'Sum(n): '+str(cluster_m_sum)+'\n'
-		my_string = 'Sum(N): '+str(N_m_sum)+'\n'
 
 		ret_delta.append(delta)
 		ret_MI.append(MI)
@@ -99,7 +90,6 @@ def get_multi_ith_cell(dims, range_cell, Q, m):
 		feat_ith_data = []
 		feature_counter += 1
 
-
 	final_dim = [*zip(*dim_data)] # Transpose the data, flip x to y, and y to x
 
 	for i in range(0, len(final_dim)):
@@ -107,7 +97,6 @@ def get_multi_ith_cell(dims, range_cell, Q, m):
 			cell_hash[final_dim[i]] += 1
 		else:
 			cell_hash[final_dim[i]] = 1
-
 
 	for freq in cell_hash.values():
 		if(freq >= m):

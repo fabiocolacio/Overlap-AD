@@ -8,8 +8,10 @@ import argparse
 parser = argparse.ArgumentParser(description='Perform data anomaly detection with LCE')
 parser.add_argument(dest='dataset', type=str, help='Choose: AAPL, GOOG, FB, IBM')
 parser.add_argument(dest='sample_size', type=int, help='the size of a training data')
+parser.add_argument(dest='m', type=int, help='minimum cluster number')
+
 # parser.add_argument(dest='end_sub_sample', type=int, help='maximum data to observe')
-parser.add_argument(dest='forgiven_index', type=int, help='forgiven_index: (int)')
+# parser.add_argument(dest='forgiven_index', type=int, help='forgiven_index: (int)')
 args = parser.parse_args()
 
 ################################################################
@@ -23,7 +25,6 @@ import lib.scaler as scaler
 import lib.dir_manager as dm
 import lib.morisita_index as mi
 import lib.grapher
-import lib.training
 import os
 import collections
 from sklearn.preprocessing import StandardScaler
@@ -33,210 +34,248 @@ import json
 fig = plt.figure()
 
 
-if __name__ == "__main__":
-	# Parsing argument(s) to variable(s) #
-	b2 = args.sample_size
-	# cap_data = args.end_sub_sample
-	forgiven_index = args.forgiven_index
 
-	MI_array = []
-	dims = []
-	matplot_color = ['b','g','r','c','m','y','k','w']
-	b1 = 0
-	m = 2
-	i = 1
-	N = 0
-	A = 0
-	benchmarks = 15
-	result_list = []
-	result_timestamp = []
+def write_our_anomaly(f, result_timestamp):
+	hp.write_transcript(f, '=== Our Anomaly Timestamps ===')
+	for ts in result_timestamp:
+		hp.write_transcript(f, ts)
 
+def write_ground_truth_anomaly_windows(f, filepath):
+	hp.write_transcript(f, '=== Ground Truth Anomaly Windows ===')
+	hp.write_labeled_json(f,
+						'./labels/combined_windows.json',
+						filepath)
 
-	''' '''
-
-	# dataset = hp.csv_extraction('./nab/realTweets/realTweets/Twitter_volume_'+str(args.dataset)+'.csv',1)
-
-	data = pd.read_csv('./nab/realTweets/realTweets/Twitter_volume_'+str(args.dataset)+'.csv')
-	timestamp = np.array(data['timestamp'])
-	value = np.array(data['value'])
-	datastamp = list(range(0, len(timestamp)))
-	cap_data = len(datastamp) - 2
-	
-
-	# dims[0] = datastamp, dims[1] = timestamp, dims[2] = value
-	dims.append(datastamp)
-	dims.append(timestamp)
-	dims.append(value)
-
-
-	# Initialize the range of interval to observe data.
-	#	For example, if b2 = 100, we start observe b2+1 because
-	#	b2 has a stable data we trust for cluster. cap_data
-	#	represents the cap of data we want to examine.
-	# total_timestamp = list(range(b2+1, cap_data+1))
-	mid_graph = max(dims[2][b2+1:cap_data+2]) / 2
-
-	t0_size = [0, b2]
-	t1_size = [0, b2 + 1]
-	t2_size = [0, b2 + 2]
-
-	while(i < cap_data - b2 + 1):
-		print('\n\n\n============= Timestamp Number: ', str(i+b2), ' =============')
-		# Definted window's sizes
-		t0_wz = [b1+i, b2+i]
-		t1_wz = [b1+i, b2+i +1]
-		t2_wz = [b1+i, b2+i +2]
-
-		# Get each window into 3 instances
-		t0_sub_dim = mi.get_sub_dims(dims, t0_wz)
-		t1_sub_dim = mi.get_sub_dims(dims, t1_wz)
-		t2_sub_dim = mi.get_sub_dims(dims, t2_wz)
-
-		# print(t0_sub_dim)
-
-		# Pre-define the scale for this current iteration 
-		# We take max and min from all 3 windows at this iteration because
-		# 	we do not want to shift around the data within the interval.
-		#	Remember, LCE is purely based on data stabality on the dimension,
-		#	thus, NO data should be rescaled or move when comparison between
-		#	windows happen.
-		all_min = min(min(t0_sub_dim[2]), min(t1_sub_dim[2]), min(t2_sub_dim[2]))
-		all_max = max(max(t0_sub_dim[2]), max(t1_sub_dim[2]), max(t2_sub_dim[2]))
-
-
-		# # Scale 3 windows based on min and max of their 3 windows.
-		scaled_t0 = scaler.scale_data(t0_sub_dim[2], all_min, all_max)
-		scaled_t1 = scaler.scale_data(t1_sub_dim[2], all_min, all_max)
-		scaled_t2 = scaler.scale_data(t2_sub_dim[2], all_min, all_max)
-
-		# print('Max observe data : ', observe_2_dims)
-		# print('Scaled t0      : ', scaled_t0)
-		# print('Scaled t1      : ', scaled_t1)
-		# print('Scaled t2      : ', scaled_t2)
-
-		# print('All min: ', all_min)
-		# print('All max: ', all_max)
-
-		# print()
-
-		# # Extra, no need to worry about this for now
-		# MI_main = mi.MINDID_Multi_Dims([scaled_main], m, 15, main_bucket_size)
-		# MI_obs_1 = mi.MINDID_Multi_Dims([scaled_obs_1], m, 15, observe_1_bucket_size)
-		# MI_obs_2 = mi.MINDID_Multi_Dims([scaled_obs_2], m, 15, observe_2_bucket_size)
-
-		# # Removing duplicates so that each precise number is unique and does not
-		# #	cause infinite LCE value
-		scaled_set_t0 = [list(dict.fromkeys(scaled_t0))]
-		scaled_set_t1 = [list(dict.fromkeys(scaled_t1))]
-		scaled_set_t2 = [list(dict.fromkeys(scaled_t2))]
-
-		# print('Non dupe Main      : ', scaled_set_t0)
-		# print('Non dupe Observe 1 : ', scaled_set_t1)
-		# print('Non dupe Observe 2 : ', scaled_set_t2)
-
-		# # Define bucket sizes after duplicates have been removed
-		t0_set_wz = [0, len(scaled_set_t0[0])]
-		t1_set_wz = [0, len(scaled_set_t1[0])]
-		t2_set_wz = [0, len(scaled_set_t2[0])]
-
-		
-		# # Compute the score of LCE, this will result in list of cluster sum
-		CS_t0_LCE = mi.Cluster_Sum(scaled_set_t0, m, 10, t0_set_wz)
-		CS_t1_LCE = mi.Cluster_Sum(scaled_set_t1, m, 10, t1_set_wz)
-		CS_t2_LCE = mi.Cluster_Sum(scaled_set_t2, m, 10, t2_set_wz)
-
-		# # Get the LCE index
-		t0_LCE = hp.compute_LCE_index(CS_t0_LCE)
-		t1_LCE = hp.compute_LCE_index(CS_t1_LCE)
-		t2_LCE = hp.compute_LCE_index(CS_t2_LCE)
-
-
-		# print('#######################\n')
-
-
-		# print('Length t0: ', len(scaled_set_t0[0]))
-		# print('Length t1: ', len(scaled_set_t1[0]))
-		# print('Length t2: ', len(scaled_set_t2[0]))
-
-		# print('t0 LCE: ',CS_main_LCE[0])
-		# print('t1 LCE: ',CS_obs_1_LCE[0])
-		# print('t2 LCE: ',CS_obs_2_LCE[0])
-
-		# print()
-		# print('#######################\n')
-
-
-		# Start codition
-		if( (len(scaled_set_t0[0]) == len(scaled_set_t1[0]) or len(scaled_set_t1[0]) == len(scaled_set_t2[0])) or
-			(CS_t0_LCE[0][t0_LCE - forgiven_index] < CS_t1_LCE[0][t1_LCE - forgiven_index] or CS_t1_LCE[0][t1_LCE - forgiven_index] < CS_t2_LCE[0][t2_LCE - forgiven_index])):
-			result_list.append(-50)
-
-		else:
-			result_list.append(mid_graph)
-			result_timestamp.append(dims[1][i])
-
-		# print('Result', result_list)
-		i += 1
-
-	for d in result_list:
-		if(d == -50):
-			N += 1
-		else:
-			A += 1
-
-	print()
-	print("=== Total classification ===")
-	print('Normal: ', N)
-	print('Anomaly: ', A)
-	print()
-
-
-
-	f = open("./transcript_"+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data)+"_forgivenIndex_"+str(forgiven_index)+".txt", "w")
-
-	ground_truth_timestamps = []
-
-	f.write(hp.output('=== Ground Truth Anomaly Timestamp ==='))
-
-	with open('./labels/combined_labels.json') as json_file:
-		data = json.load(json_file)
-		for windows in data['realTweets/Twitter_volume_'+str(args.dataset)+'.csv']:
- 			f.write(hp.output(windows))
- 			ground_truth_timestamps.append(windows)
-	print()
-
-	ground_truth_datastamp_list = [-50] * len(datastamp)
-
+def write_ground_truth_anomaly(f, filepath):
+	hp.write_transcript(f, '= Ground Truth Anomaly Timestamp ===')
+	ground_truth_timestamps =  hp.write_labeled_json(f,
+								'./labels/combined_labels.json',
+								filepath)
+	ground_truth_datastamp_list = [-100] * (len(datastamp) - 1)
 	for i in range(1, len(ground_truth_datastamp_list)):
 		if(dims[1][i] in ground_truth_timestamps):
-			ground_truth_datastamp_list[i] = max(dims[2][b2+1:cap_data+2]) / 2
+			ground_truth_datastamp_list[i] = max(dims[2][0:cap_data+2]) / 2
+	return ground_truth_datastamp_list
 
-	f.write(hp.output('=== Ground Truth Anomaly Windows ==='))
-	with open('./labels/combined_windows.json') as json_file:
-		data = json.load(json_file)
-		for windows in data['realTweets/Twitter_volume_'+str(args.dataset)+'.csv']:
-			f.write(hp.output(str(windows)))
-	print()
+def graph_data(result_list, ground_truth_datastamp_list):
 
-	f.write(hp.output('=== Our Anomaly Timestamps ==='))
-	for ts in result_timestamp:
-		f.write(hp.output(ts))
-	print()
+	result, = plt.plot(datastamp[1:cap_data], result_list, '^', markersize=np.sqrt(10.), c='r')
+	ground_truth_datastamp, = plt.plot(datastamp[1:cap_data], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='y')
 
-	# Plot data
-	result, = plt.plot(datastamp[b2+1:cap_data+1], result_list, '^', markersize=np.sqrt(10.), c='r')
-	# plt.clf()
-	ground_truth_datastamp, = plt.plot(datastamp[0:len(datastamp)], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='m')
+	origin, = plt.plot(datastamp[1:cap_data], dims[2][1:cap_data], 'o', markersize=np.sqrt(10.), c='b')
 
-
-	# # Plot actual data
-	origin, = plt.plot(datastamp[b2+1:cap_data+1], dims[2][b2:cap_data], 'o', markersize=np.sqrt(10.), c='b')
 	plt.title('Anomaly Detection on NAB on '+ str(args.dataset))
 	plt.ylabel('Tweet Numbers')
 	plt.xlabel('Timestamp')
 	plt.ylim(bottom=0)
 	plt.legend([result, ground_truth_datastamp, origin], ['Anomaly', 'Ground Truth', 'Data'])
 	dm.mkdir('results')
-	fig.savefig('./results/'+str(args.dataset)+"_"+str(b2)+"_stables_"+str(cap_data)+"_forgivenIndex_"+str(forgiven_index), dpi=300)
+	fig.savefig('./results/'+str(args.dataset)+"_"+str(args.sample_size)+"_stables_"+str(cap_data), dpi=300)
 	plt.clf()
+
+
+if __name__ == "__main__":
+	matplot_color = ['b','g','r','c','m','y','k','w']
+	init_data = args.sample_size
+	m = args.m
+	benchmarks = 15
+	result_list = []
+	result_timestamp = []
+	dims = []
+
+	data = pd.read_csv('./nab/realTweets/realTweets/Twitter_volume_'+str(args.dataset)+'.csv')
+	timestamp = np.array(data['timestamp'])
+	value = np.array(data['value'])
+	datastamp = list(range(0, len(timestamp)))
+
+	# dims[0] = datastamp, dims[1] = timestamp, dims[2] = value
+	dims.append(datastamp)
+	dims.append(timestamp)
+	dims.append(value)
+
+	cap_data = len(datastamp)
+
+	init_cap = init_data - 1 # max data to be computed
+
+	mid_graph = max(dims[2][0:cap_data+2]) / 2 # For plotting anomaly and ground truth
+
+	trusted_data, all_data = hp.deque_list(dims[2], init_data)
+	
+	# Initially define a number of trusted data to the result_list.
+	for k in range(0, len(trusted_data)):
+		result_list.append('N')
+
+	# Removing duplicates of data and initializing min and max of the window
+	trusted_set = list(dict.fromkeys(trusted_data))
+	trusted_set_len = len(trusted_set)
+	all_min = min(trusted_set)
+	all_max = max(trusted_set)
+
+	# Scale the current data 
+	trusted_scaled_data = scaler.scale_data(trusted_set, all_min, all_max)
+	
+	# Compute the initial LCE
+	trusted_LCE = mi.Cluster_Sum(trusted_scaled_data, m, 10)
+	index_LCE, val_LCE = hp.compute_LCE_index_val(trusted_LCE)
+	
+	j = 0
+	while(init_data < cap_data-1):
+		print('Data stamp: ', init_data)
+
+		obs_entry, all_data = hp.deque_list(all_data, 1)
+		obs_data = trusted_set + obs_entry
+		all_min = min(obs_data)
+		all_max = max(obs_data)
+
+		obs_set = list(dict.fromkeys(obs_data))
+		obs_set_len = len(obs_set)
+
+		prev_state = result_list[-1]
+
+		# Classification #
+		if(trusted_set_len == obs_set_len): # If the observing data is a duplicate
+			if(prev_state == 'P'):
+				result_list[-1] = 'N'
+				trusted_data.pop(-1)
+			result_list.append('N')
+			trusted_data.pop(0)
+			trusted_data.append(obs_entry[0])
+			print(trusted_data, 'N len')
+
+
+		else: # else the observing data is not a duplicate
+			obs_scaled_data, trusted_scaled_data = scaler.scale_data(obs_set, all_min, all_max), scaler.scale_data(trusted_set, all_min, all_max)
+			
+			trusted_LCE = mi.Cluster_Sum(trusted_scaled_data, m, 10)
+			obs_LCE = mi.Cluster_Sum(obs_scaled_data, m, 10)
+			
+			trusted_index_LCE = hp.get_LCE_index(trusted_LCE)
+
+			trusted_val_LCE = hp.get_LCE_val(trusted_LCE, trusted_index_LCE)
+			obs_val_LCE = hp.get_LCE_val(obs_LCE, trusted_index_LCE)
+
+			if(prev_state == 'N' and (obs_val_LCE > trusted_val_LCE)): # N -> N N
+				result_list[-1] = 'N'
+				result_list.append('N')
+				trusted_data.pop(0)
+				trusted_data.append(obs_entry[0])
+				print(trusted_data, 'N >')
+
+			elif(prev_state == 'N' and (obs_val_LCE == trusted_val_LCE)): # N -> N P
+				result_list[-1] = 'N'
+				result_list.append('P')
+
+				trusted_data.append(obs_entry[0])
+				print(trusted_data, 'N ==')
+
+			elif(prev_state == 'P' and (obs_val_LCE > trusted_val_LCE)): # P -> N N
+				# New node landed in same cell as prev node
+				result_list[-1] = 'N'
+				result_list.append('N')
+				trusted_data.pop(0)
+				trusted_data.pop(0)
+				trusted_data.append(obs_entry[0])
+				print(trusted_data, 'P >')
+
+
+			elif(prev_state == 'P' and (obs_val_LCE == trusted_val_LCE)): # P -> A P
+				result_list[-1] = 'A'
+				result_list.append('P')
+				trusted_data.pop(-1)
+				trusted_data.append(obs_entry[0])
+				print(trusted_data, 'P ==')
+
+
+			elif(prev_state == 'A' and (obs_val_LCE > trusted_val_LCE)): # A -> A N
+				result_list[-1] = 'A'
+				result_list.append('N')
+				trusted_data.pop(0)
+				trusted_data.append(obs_entry[0])
+				print(trusted_data, 'A >')
+
+
+			elif(prev_state == 'A' and (obs_val_LCE == trusted_val_LCE)): # A -> A P
+				result_list[-1] = 'A'
+				result_list.append('P')
+				trusted_data.pop(0)
+				trusted_data.append(obs_entry[0])
+				print(trusted_data, 'A ==')
+
+			else: # This is error classification and should not be in the result
+				result_list.append('E')
+				print('ERROR')
+
+
+		print()
+		print()
+		init_data += 1
+
+
+	# Sum up the results
+	n, a, p, e, null = 0, 0, 0, 0, 0
+	for i in range(0,len(result_list)):
+		if(result_list[i] == 'N'):
+			n += 1
+			result_list[i] = -100
+		elif(result_list[i] == 'A'):
+			a += 1
+			result_list[i] = mid_graph
+			result_timestamp.append(dims[1][i])
+		elif(result_list[i] == 'P'):
+			p += 1
+			result_list[i] = mid_graph - 200
+		elif(result_list[i] == 'E'):
+			e += 1
+			result_list[i] = mid_graph - 600
+		else:
+			null += 1
+			result_list[i] = -100
+
+	print('A: ', a)
+	print('N: ', n)
+	print('P: ', p)
+	print('E: ', e)
+	print('null: ', null)
+	
+	f = open("./results/transcript_"+str(args.dataset)+"_"+str(args.sample_size)+"_stables_"+str(cap_data)+".txt", "w")
+	# Processing transcript of data
+	ground_truth_datastamp_list = write_ground_truth_anomaly(f, 'realTweets/Twitter_volume_'+str(args.dataset)+'.csv')
+	write_ground_truth_anomaly_windows(f, 'realTweets/Twitter_volume_'+str(args.dataset)+'.csv')
+	write_our_anomaly(f, result_timestamp)
+
+	# Graph the result
+	graph_data(result_list, ground_truth_datastamp_list)
+
+	tp, tn, fp, fn, ud = 0, 0, 0, 0, 0
+
+	for i in range(0,len(datastamp)-1):
+
+		result, ground_truth = result_list[i], ground_truth_datastamp_list[i]
+
+		if(result == ground_truth): # Positive
+			if(result < 0 and ground_truth < 0): # Both normal
+				tn += 1
+			elif(result > 0 and ground_truth > 0): # Both anomaly
+				tp += 1
+			else:
+				ud += 1
+		else: # Negative
+			if(result > ground_truth): # Our result flagged anomaly on a normal data
+				fp += 1
+			elif(result < ground_truth): # Our result did not flag anomaly on an anomaly data
+				fn += 1
+			else:
+				ud += 1
+
+
+	print()
+	f.write(hp.output('=== Summary ==='))
+	f.write(hp.output('True Negative  :  '+ str(tn)))
+	f.write(hp.output('True Positive  :  '+ str(tp)))
+	f.write(hp.output('False Negative :  '+ str(fn)))
+	f.write(hp.output('False Positive :  '+ str(fp)))
+	f.write(hp.output('Total Data: '+ str(len(result_list))))
+	print()
 	f.close()
+
+
