@@ -61,6 +61,7 @@ def Cluster_Sum(dims, m, benchmarks):
 		N_m_sum = nth_summation([len(dims[0])], m)
 		LC = cluster_m_sum
 	
+
 		ret_delta.append(delta)
 		ret_LC.append(LC)
 

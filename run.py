@@ -53,6 +53,7 @@ def write_ground_truth_anomaly(f, filepath):
 	for i in range(0, len(ground_truth_datastamp_list)):
 		if(dims[1][i] in ground_truth_timestamps):
 			ground_truth_datastamp_list[i] = max(dims[2][0:cap_data]) / 2
+
 	return ground_truth_datastamp_list
 
 def graph_data(result_list, ground_truth_datastamp_list):
@@ -61,6 +62,7 @@ def graph_data(result_list, ground_truth_datastamp_list):
 	ground_truth_datastamp, = plt.plot(datastamp[0:cap_data], ground_truth_datastamp_list, 'v', markersize=np.sqrt(10.), c='y')
 
 	origin, = plt.plot(datastamp[0:cap_data], dims[2][0:cap_data], 'o', markersize=np.sqrt(10.), c='b')
+
 
 	plt.title('Anomaly Detection on NAB on '+ str(args.dataset))
 	plt.ylabel('Tweet Numbers')
@@ -170,6 +172,7 @@ def state_machine(window_size, cap_data, all_data, init_trust_data, result_list)
 if __name__ == "__main__":
 	matplot_color = ['b','g','r','c','m','y','k','w']
 	window_size = args.sample_size
+
 	m = args.m
 	benchmarks = 15
 	result_list = []
@@ -224,6 +227,7 @@ if __name__ == "__main__":
 	print('Total Pending: ', pending)
 	print('Total Error  : ', error)
 	print('Total Null   : ', null)
+
 	
 	f = open("./results/transcript_"+str(args.dataset)+"_"+str(args.sample_size)+"_stables_"+str(cap_data)+".txt", "w")
 	# Processing transcript of data

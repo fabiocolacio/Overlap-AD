@@ -28,6 +28,7 @@ def get_LCE_index(LCE):
 			LCE_benchmark = i
 	return LCE_benchmark
 
+
 def get_LCE_val(LCE, LCE_benchmark):
 	return LCE[0][LCE_benchmark]
 

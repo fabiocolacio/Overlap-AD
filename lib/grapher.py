@@ -6,7 +6,7 @@ import time
 from datetime import timezone
 import numpy as np
 import math
-import matplotli	b.pyplot as plt
+import matplotlib.pyplot as plt
 fig = plt.figure()
 
 matplot_color = ['b','g','r','c','m','y','k','w']
