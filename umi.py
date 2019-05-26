@@ -38,6 +38,18 @@ def classify(datapoint, trusted_data, last_classification):
 
     # Check if the data lands in the same cluster as a trusted datapoint
     else:
+        trusted_min = min(trusted_data)
+        trusted_max = max(trusted_data)
+
+        all_min = min(datapoint, trusted_min)
+        all_max = max(datapoint, trusted_max)
+
+        scale_min = 0.0
+        scale_max = 1.0
+
+        all_data_scaled = np.interp((*trusted_data, datapoint), (all_min, all_max), (scale_min, scale_max))
+        trusted_data_scaled = np.interp(trusted_data, (trusted_min, trusted_max), (scale_min, scale_max))
+        
         elif clustered:
             classification = NORMAL
 
