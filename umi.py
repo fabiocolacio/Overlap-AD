@@ -16,11 +16,55 @@ PENDING = 3
 FALSE_POSITIVE = 4
 FALSE_NEGATIVE = 5
 
+def lce(data, mincluster=2, numbenchmarks=15):
+    # Number of dimensions per datapoint
+    feature_count = len(data[0])
+
+    # Size of a quadrat (halves itself each trial)
+    delta = 1
+
+    lce = np.zeros(numbenchmarks)
+
+    for benchmark in range(numbenchmarks):
+        #  Number of quadrats per dimension. Same as 1 / delta
+        q = np.power(2, benchmark)
+
+        # Total number of quadrats
+        Q = np.power(q, feature_count)
+
+        # The domains of each cell
+        # Eg: benchmark = 2, delta = 0.25
+        # [0, 0.25, 0.5, 0.75, 1.0]
+
+        # quadrat_sums contains number of datapoints in each quadrat.
+        # Recall that Q = q ^ feature_count
+        quadrat_sums = np.zeros((q,) * feature_count)
+
+        for i in range(len(data)):
+            quadrat = tuple(int(np.floor(data[i][f] / delta)) for f in range(feature_count))
+            quadrat_sums[quadrat] += 1
+
+        for i in np.ndenumerate(quadrat_sums):
+            quadrat_sum = quadrat_sums[i[0]]
+
+            if quadrat_sum >= m:
+                continue
+
+            product = 1
+            for j in range(m):
+                product *= quadrat_sum - j
+            lce[benchmark] += product
+        lce[benchmark] *= Q
+        
+        delta /= 2
+
+    return lce
+
 def classify(datapoint, trusted_data, last_classification):
     """Classifies data as NORMAL, ANOMALY, or PENDING.
 
     Args:
-        datapoint: The current datapoint to classify
+        datapoint: The current datapoint to classify. May be array-like for multi-dimensional data.
         trusted_data: A double-ended queque of datapoints that are trusted
         last_classification: The classification of the previous datapoint
     Returns:
@@ -29,6 +73,9 @@ def classify(datapoint, trusted_data, last_classification):
     
     revision = last_classification
     classification = UNCLASSIFIED
+
+    # Number of dimensions in the data.
+    feature_count = len(datapoint)
 
     # Check if the datapoint is an exact duplicate of a trusted datapoint
     if datapoint in trusted_data:
@@ -47,10 +94,32 @@ def classify(datapoint, trusted_data, last_classification):
         scale_min = 0.0
         scale_max = 1.0
 
+        # Scale data linearly to range [0.0, 1.0]
         all_data_scaled = np.interp((*trusted_data, datapoint), (all_min, all_max), (scale_min, scale_max))
-        trusted_data_scaled = np.interp(trusted_data, (trusted_min, trusted_max), (scale_min, scale_max))
-        
-        elif clustered:
+        trusted_data_scaled = np.interp(trusted_data, (all_min, all_max), (scale_min, scale_max))
+
+        # Minimum cluster size
+        min_cluster = 2
+
+        # Number of times to divide quadrat size
+        num_benchmarks = 15
+
+        # Find LCE for trusted set and trusted set + new data
+        all_lce = lce(all_data_scaled, min_cluster, num_benchmarks)
+        trusted_lce = lce(trusted_data_scaled, min_cluster, num_benchmarks)
+
+        # Find the smallest quadrat size with positive LCE
+        lce_index = 0
+        for benchmark in range(num_benchmarks):
+            if trusted_lce[benchmark] > 0:
+                lce_index = benchmark
+        all_lce_val = all_lce[lce_index]
+        trusted_lce_val = trusted_lce[lce_index]
+
+        # If all_lce_val > trusted_lce_val, the new data resides in a pre-existing cluster
+        clustered = all_lce_val > trusted_lce_val
+
+        if clustered:
             classification = NORMAL
 
             if last_classification == PENDING:
@@ -61,9 +130,6 @@ def classify(datapoint, trusted_data, last_classification):
 
             if last_classification == PENDING:
                 revision = ANOMALY
-
-    # Keep track of current datapoint for future reference
-    trusted_data.append(datapoint)
 
     # If the new data is NORMAL, the replace the oldest trusted data with the new data
     if classification == NORMAL:
@@ -76,6 +142,9 @@ def classify(datapoint, trusted_data, last_classification):
     # If the pending data was anomalous, remove it from the trusted dataset
     if revision == ANOMALY:
         trusted_data.pop()
+
+    # Keep track of current datapoint for future reference
+    trusted_data.append(datapoint)
 
     return revision, classification
 
@@ -90,11 +159,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Sample of LCE method for detecting anomalies in twitter dataset')
     parser.add_argument('-d', '--dataset', dest='dataset', type=str, help='Choose: AAPL, GOOG, FB, IBM')
     parser.add_argument('-t', '--trusted-size', dest='trusted_size', type=int, help='The size of the subset of trusted data')
-    parser.add_argument('-m', '--min-cluster', dest='mincluster', type=int, help='The minimum cluster number')
     args = parser.parse_args()
     dataset = args.dataset
     trusted_size = args.trusted_size
-    mincluster = args.mincluster
     
     # Load specified dataset into memory.
     all_data = np.loadtxt(open(DATA_PATH % (dataset), 'rb'), delimiter=",", skiprows=1, usecols=1, dtype=int)
