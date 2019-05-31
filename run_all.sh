@@ -1,13 +1,18 @@
-#!/usr/bin/sh 
+#!/usr/bin/env bash
+
+echo "Running tests..."
 
 # Run all tests in separate processes
+python3 umi.py -d AMZN -t 1500 -v > "results/AMZN_1500.txt" &
+python3 umi.py -d CRM  -t 1500 -v > "results/CRM_1500.txt"  &
+python3 umi.py -d FB   -t 1500 -v > "results/FB_1500.txt"   &
+python3 umi.py -d GOOG -t 1500 -v > "results/GOOG_1500.txt" &
+python3 umi.py -d IBM  -t 1500 -v > "results/IBM_1500.txt"  &
+python3 umi.py -d KO   -t 1500 -v > "results/KO_1500.txt"   &
+python3 umi.py -d PFE  -t 1500 -v > "results/PFE_1500.txt"  &
+python3 umi.py -d UPS  -t 1500 -v > "results/UPS_1500.txt"  &
 
-python3 run.py AMZN 1500 2 &
-python3 run.py CRM 1500 2 &
-python3 run.py FB 1500 2 &
-python3 run.py GOOG 1500 2 &
-python3 run.py IBM 1500 2 &
-python3 run.py KO 1500 2 &
-python3 run.py PFE 1500 2 &
-python3 run.py UPS 1500 2 &
+wait
+
+echo "All tests complete."
 
