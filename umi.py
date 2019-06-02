@@ -86,7 +86,7 @@ def classify(datapoint, trusted_data, last_classification):
 
     # Check if the data lands in the same cluster as a trusted datapoint
     else:
-        all_data = np.array([*trusted_data, datapoint], dtype=float, copy=True)
+        all_data = np.array([*np.unique(trusted_data, axis=0), datapoint], dtype=float, copy=True)
 
         # Minimum and maximum value for each dimension
         feature_mins = np.amin(all_data, axis=0)
@@ -107,8 +107,17 @@ def classify(datapoint, trusted_data, last_classification):
         all_lce = lce(all_data, min_cluster, num_benchmarks)
         trusted_lce = lce(all_data[:-1], min_cluster, num_benchmarks)
 
+        all_lce_val = 0
+        trusted_lce_val = 0
         # If all_lce_val > trusted_lce_val, the new data resides in a pre-existing cluster
-        clustered = max(min(all_lce), 0) > max(min(trusted_lce), 0)
+        for lce_val in all_lce:
+            if lce_val > 0:
+                all_lce_val = lce_val
+        for lce_val in trusted_lce:
+            if lce_val > 0:
+                trusted_lce_val = lce_val
+
+        clustered = all_lce_val > trusted_lce_val
 
         if clustered:
             classification = NORMAL
