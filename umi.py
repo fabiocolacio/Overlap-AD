@@ -8,6 +8,7 @@
 # classification function is also suitable for use in streams of unknown length.
 
 from collections import deque
+import numpy as np
 
 UNCLASSIFIED = 0
 NORMAL = 1
@@ -17,6 +18,35 @@ FALSE_POSITIVE = 4
 FALSE_NEGATIVE = 5
 TRUE_POSITIVE = 6
 TRUE_NEGATIVE = 7
+
+def euclidean_dist(a, b):
+    """Euclidean distance formula for two n-dimensional points.
+
+    Args:
+        a: The first point
+        b: The second point
+    Returns:
+        The euclidean distance of the two points.
+    """
+
+    return np.linalg.norm(a - b)
+
+def in_threshold(point, dset, thresh):
+    """Checks if the given point is within the distance threshold of any point in dset.
+    
+    Args:
+        point: The point to check
+        dset: The dataset to check
+        thresh: The euclidean distance threshold to check for point.
+    Returns: 
+        True if point is within the distance threshold for one or more points within dset.
+        False otherwise.
+    """
+
+    for other in dset:
+        if euclidean_dist(point, other) <= thresh:
+            return True
+    return False
 
 def lce(data, min_cluster=2, num_benchmarks=15):
     # Number of dimensions per datapoint
@@ -61,7 +91,7 @@ def lce(data, min_cluster=2, num_benchmarks=15):
 
     return lce
 
-def classify(datapoint, trusted_data, last_classification):
+def classify(datapoint, trusted_data, last_classification, threshold=0):
     """Classifies data as NORMAL, ANOMALY, or PENDING.
 
     Args:
@@ -79,7 +109,7 @@ def classify(datapoint, trusted_data, last_classification):
     feature_count = len(datapoint)
 
     # Check if the datapoint is an exact duplicate of a trusted datapoint
-    if datapoint in trusted_data:
+    if in_threshold(datapoint,  trusted_data, threshold):
         if last_classification == PENDING:
             revision = NORMAL
         classification = NORMAL
@@ -160,12 +190,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Sample of LCE method for detecting anomalies in twitter dataset')
     parser.add_argument('-d', '--dataset', dest='dataset', type=str, help='Choose: AAPL, GOOG, FB, IBM')
     parser.add_argument('-t', '--trusted-size', dest='trusted_size', type=int, help='The size of the subset of trusted data')
+    parser.add_argument('-s', '--threshold', dest='threshold', type=float)
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true')
     parser.set_defaults(verbose=False)
 
     args = parser.parse_args()
     dataset = args.dataset
     trusted_size = args.trusted_size
+    threshold = args.threshold
     verbose = args.verbose
     
     # Load specified dataset into memory.
@@ -191,13 +223,13 @@ if __name__ == '__main__':
     # Classify the remaining data
     for i in range(trusted_size, data_size):
         # The new, unclassified data
-        datapoint = (all_data[i],)
+        datapoint = np.array((all_data[i],))
 
         # The result of the last classification. For the first result, this is NORMAL
         last_classification = results[i - 1]
 
         # Get a revision for the last classification if it was pending, and a classification for the new data.
-        revision, fresh = classify(datapoint, trusted_data, last_classification)
+        revision, fresh = classify(datapoint, trusted_data, last_classification, threshold)
 
         # Store our results
         results[i - 1] = revision
