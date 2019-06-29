@@ -108,24 +108,25 @@ def classify(datapoint, trusted_data, last_classification, threshold=0):
     # Number of dimensions per datapoint
     feature_count = len(datapoint)
 
+    all_data = np.array([*np.unique(trusted_data, axis=0), datapoint], dtype=float, copy=True)
+
+    # Minimum and maximum value for each dimension
+    feature_mins = np.amin(all_data, axis=0)
+    feature_maxs = np.amax(all_data, axis=0)
+
+    # Normalize the data to the range [0.0, 1.0]
+    for feature in range(feature_count):
+        for i in range(len(all_data)):
+            all_data[i][feature] = (all_data[i][feature] - feature_mins[feature]) / (feature_maxs[feature] - feature_mins[feature])
+
     # Check if the datapoint is an exact duplicate of a trusted datapoint
-    if in_threshold(datapoint,  trusted_data, threshold):
+    if in_threshold(all_data[-1],  all_data[:-1], threshold):
         if last_classification == PENDING:
             revision = NORMAL
         classification = NORMAL
 
     # Check if the data lands in the same cluster as a trusted datapoint
     else:
-        all_data = np.array([*np.unique(trusted_data, axis=0), datapoint], dtype=float, copy=True)
-
-        # Minimum and maximum value for each dimension
-        feature_mins = np.amin(all_data, axis=0)
-        feature_maxs = np.amax(all_data, axis=0)
-
-        # Normalize the data to the range [0.0, 1.0]
-        for feature in range(feature_count):
-            for i in range(len(all_data)):
-                all_data[i][feature] = (all_data[i][feature] - feature_mins[feature]) / (feature_maxs[feature] - feature_mins[feature])
 
         # Minimum cluster size
         min_cluster = 2
