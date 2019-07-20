@@ -117,7 +117,10 @@ def classify(datapoint, trusted_data, last_classification, threshold=0):
     # Normalize the data to the range [0.0, 1.0]
     for feature in range(feature_count):
         for i in range(len(all_data)):
-            all_data[i][feature] = (all_data[i][feature] - feature_mins[feature]) / (feature_maxs[feature] - feature_mins[feature])
+            if all_data[i][feature] == feature_mins[feature] and feature_mins[feature] == feature_maxs[feature]:
+                all_data[i][feature] = 0.0
+            else:
+                all_data[i][feature] = (all_data[i][feature] - feature_mins[feature]) / (feature_maxs[feature] - feature_mins[feature])
 
     # Check if the datapoint is an exact duplicate of a trusted datapoint
     if in_threshold(all_data[-1],  all_data[:-1], threshold):
