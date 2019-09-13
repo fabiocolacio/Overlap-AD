@@ -49,6 +49,16 @@ def in_threshold(point, dset, thresh):
     return False
 
 def lce(data, min_cluster=2, num_benchmarks=15):
+    """Calculates the LCE of a given dataset.
+    
+    Args:
+        data: The data to find the LCE of
+        min_cluster: The minimum amount of datapoints needed to form a cluster in one quadrat.
+        num_benchmarks: The maximum number of times to halve the quadrat size.
+    Returns:
+        An array of size num_benchmarks containing the lce for each quadrat size.
+    """
+
     # Number of dimensions per datapoint
     feature_count = len(data[0])
 
@@ -58,33 +68,25 @@ def lce(data, min_cluster=2, num_benchmarks=15):
     lce = np.zeros(num_benchmarks, dtype=int)
 
     for benchmark in range(num_benchmarks):
-        #  Number of quadrats per dimension. Same as 1 / delta
-        q = np.power(2, benchmark)
+        # Contains the number of points in each quadrat
+        quadrat_sums = {}
 
-        # Total number of quadrats
-        Q = np.power(q, feature_count)
+        # Find sum of points in each quadrat
+        for point in data:
+            quadrat = tuple(int(np.ceil(point[f] / delta)) - 1 if point[f] != 0 else 0 for f in range(feature_count))
+            if quadrat in quadrat_sums:
+                quadrat_sums[quadrat] += 1
+            else:
+                quadrat_sums[quadrat] = 1
 
-        # The domains of each cell
-        # Eg: benchmark = 2, delta = 0.25
-        # [0, 0.25, 0.5, 0.75, 1.0]
-
-        # quadrat_sums contains number of datapoints in each quadrat.
-        # Recall that Q = q ^ feature_count
-        quadrat_sums = np.zeros((q,) * feature_count)
-
-        for i in range(len(data)):
-            quadrat = tuple(int(np.ceil(data[i][f] / delta)) - 1 if data[i][f] != 0 else 0 for f in range(feature_count))
-            quadrat_sums[quadrat] += 1
-
-        for i in np.ndenumerate(quadrat_sums):
-            quadrat_sum = quadrat_sums[i[0]]
-
-            if quadrat_sum < min_cluster:
+        # Solve n!/(n - m)! for each quadrat, and add to LCE
+        for key, value in quadrat_sums.items():
+            if value < min_cluster:
                 continue
 
             product = 1
-            for j in range(min_cluster):
-                product *= quadrat_sum - j
+            for n in range(min_cluster):
+                 product *= (value - n)
             lce[benchmark] += product
         
         delta /= 2
