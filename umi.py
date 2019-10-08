@@ -7,6 +7,7 @@
 # classification function. Although our sample uses a fixed, known-size dataset, our
 # classification function is also suitable for use in streams of unknown length.
 
+from itertools import count
 from collections import deque
 import numpy as np
 
@@ -132,7 +133,6 @@ def classify(datapoint, trusted_data, last_classification, threshold):
 
     # Check if the data lands in the same cluster as a trusted datapoint
     else:
-
         # Minimum cluster size
         min_cluster = 2
 
@@ -222,6 +222,8 @@ def test(data, labels, window_size, threshold):
         labels: A list containing labels for data (must be formatted as ANOMALY or NORMAL as defined in this module.
         window_size: The size of the trusted window to use.
         threshold: The size of the euclidean distance threshold to use.
+    Returns:
+        A tuple containing number of false positives, false negatives, and skipped anomalies
     """
     data_iter = iter(data)
 
@@ -249,6 +251,40 @@ def test(data, labels, window_size, threshold):
         i += 1
 
     return (fp, fn, skipped_anomalies)
+
+def train_params(training_data, labels, p_max, n_max, s_ticks):
+    def train_t(t_min, t_max):
+        def train_s(s_min, s_max, depth=0):
+            s = (s_max - s_min) / 2
+            p, n = train(training_data, labels, midpoint, s)
+            if p <= p_max and n <= n_max:
+                return (s, False)
+            elif depth < search_depth:
+                if p > p_max and n > n_max:
+                    pass
+                elif p > p_max:
+                    return train_s(s, s_max, depth + 1)
+                else:
+                    return train_s(s_min, s, depth + 1)
+            else:
+                if p > p_max and n > n_max:
+                    pass
+                elif p > p_max:
+                    return (None, True)
+                else:
+                    return (None, False)
+        
+        t = int((t_max - t_min) / 2)
+        s, higher = train_s(t_mid)
+        if not s:
+            if higher:
+                train_t(t, t_max)
+            else:
+                train_t(t_min, t)
+        return t, s
+        
+        
+        p, n = test(training_data, labels, midpoint, s)
 
 if __name__ == "__main__":
     import os
@@ -304,4 +340,3 @@ if __name__ == "__main__":
         print("Discarded Anomalies:", discarded_anomalies)
         print("False Positives:", false_pos)
         print("False Negatives:", false_neg)
-        
