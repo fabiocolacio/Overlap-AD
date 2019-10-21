@@ -321,10 +321,21 @@ if __name__ == "__main__":
 
     false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
 
+    accu = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
+    pre = true_pos / (true_pos + false_pos)
+    req = true_pos / (true_pos _ false_neg)
+    f1 = 2 * ((pre * req) / (pre + req))
+    fpr = false_pos / (false_pos + true_neg)
+
     if csv:
         print("%10s %10d %10f %10s %10s %10s" % (os.path.basename(infile), trusted_size, threshold, false_pos, false_neg, discarded_anomalies))
     else:
         print("Discarded Anomalies:", discarded_anomalies)
         print("False Positives:", false_pos)
         print("False Negatives:", false_neg)
+        print("Accu:", accu)
+        print("Pre:", pre)
+        print("Req:", req)
+        print("fq:", f1)
+        print("FPR:", fpr)
 
