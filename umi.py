@@ -110,7 +110,7 @@ def classify(datapoint, trusted_data, last_classification, threshold):
 
     # Number of dimensions per datapoint
     feature_count = len(datapoint)
-
+    
     all_data = np.array([*np.unique(trusted_data, axis=0), datapoint], dtype=float, copy=True)
 
     # Minimum and maximum value for each dimension
@@ -120,7 +120,7 @@ def classify(datapoint, trusted_data, last_classification, threshold):
     # Normalize the data to the range [0.0, 1.0]
     for feature in range(feature_count):
         for i in range(len(all_data)):
-            if all_data[i][feature] == feature_mins[feature] == feature_maxs[feature]:
+            if np.array_equiv(all_data[i][feature], feature_mins[feature]) and np.array_equiv(all_data[i][feature], feature_maxs[feature]):
                 all_data[i][feature] = 0.0
             else:
                 all_data[i][feature] = (all_data[i][feature] - feature_mins[feature]) / (feature_maxs[feature] - feature_mins[feature])
@@ -209,7 +209,7 @@ class classifier:
         return self
 
     def __next__(self):
-        datapoint = np.array((next(self.data_iter),))
+        datapoint = next(self.data_iter)
         rev, fresh = classify(datapoint, self.trusted_data, self.last, self.threshold)
         self.last = fresh
         return (rev, fresh)
@@ -240,10 +240,11 @@ def test(data, labels, window_size, threshold):
         if labels[i] == ANOMALY:
             skipped_anomalies += 1
         else:
-            trusted_data.append((value,))
+            trusted_data.append(value)
             taken_data += 1
 
     for r, _ in classifier(data_iter, trusted_data, threshold):
+        print("point classified as", "anomaly" if r == ANOMALY else "normal")
         if r == ANOMALY != labels[i - 1]:
             fp += 1
         elif r == NORMAL != labels[i - 1]:
@@ -252,42 +253,9 @@ def test(data, labels, window_size, threshold):
 
     return (fp, fn, skipped_anomalies)
 
-def train_params(training_data, labels, p_max, n_max, s_ticks):
-    def train_t(t_min, t_max):
-        def train_s(s_min, s_max, depth=0):
-            s = (s_max - s_min) / 2
-            p, n = train(training_data, labels, midpoint, s)
-            if p <= p_max and n <= n_max:
-                return (s, False)
-            elif depth < search_depth:
-                if p > p_max and n > n_max:
-                    pass
-                elif p > p_max:
-                    return train_s(s, s_max, depth + 1)
-                else:
-                    return train_s(s_min, s, depth + 1)
-            else:
-                if p > p_max and n > n_max:
-                    pass
-                elif p > p_max:
-                    return (None, True)
-                else:
-                    return (None, False)
-        
-        t = int((t_max - t_min) / 2)
-        s, higher = train_s(t_mid)
-        if not s:
-            if higher:
-                train_t(t, t_max)
-            else:
-                train_t(t_min, t)
-        return t, s
-        
-        
-        p, n = test(training_data, labels, midpoint, s)
-
 if __name__ == "__main__":
     import os
+
     import argparse
     import json
 
@@ -316,16 +284,35 @@ if __name__ == "__main__":
     data, labels = None, None
     if args.twitter_set:
         DATA_PATH = './nab/realTweets/realTweets/Twitter_volume_%s.csv'
-        data = np.loadtxt(open(DATA_PATH % (args.twitter_set), 'rb'), delimiter=",", skiprows=1, usecols=1, dtype=int)
+        data = list(map(lambda x: np.array([x]),
+                        np.loadtxt(open(DATA_PATH % (args.twitter_set), 'rb'), delimiter=",", skiprows=1, usecols=1, dtype=int)))
+
         with open("labels/combined_labels.json") as fh:
             timestamps = np.loadtxt(open(DATA_PATH % (args.twitter_set), 'rb'), delimiter=",", skiprows=1, usecols=0, dtype=str)
             labels_raw = fh.read()
             anomalies = json.loads(labels_raw)["realTweets/Twitter_volume_%s.csv" % (args.twitter_set)]
             labels = list(map(lambda x: ANOMALY if x in anomalies else NORMAL, timestamps))
     elif args.SWaT:
-        pass
+        data_raw = np.loadtxt(infile, delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
+        rows, cols = data_raw.shape
+        labels = list(map(lambda x: NORMAL if x == 1.0 else ANOMALY, data_raw[:, cols-1]))
+        data = data_raw[:, :cols-1]
+
+        # Scale the data as in Li Dan's implementation
+        for i in range(cols - 1):
+            data[:, i] /= max(data[:, i])
+            data[:, i] = 2 * data[:, i] - 1
+
+        # Run PCA algorithm to reduce to 5 dimensions
+        from sklearn.decomposition import PCA
+        num_signals = 5
+        pca = PCA(n_components=num_signals,svd_solver='full')
+        pca.fit(data)
+        pc = pca.components_
+        data = np.matmul(data, pc.transpose(1, 0))
     elif args.yahoo:
-        data = np.loadtxt(infile, delimiter=',', skiprows=1, usecols=1, dtype=float)
+        data = list(map(lambda x: np.array([x]),
+                   np.loadtxt(infile, delimiter=',', skiprows=1, usecols=1, dtype=float)))
         labels = list(map(lambda x: NORMAL if x == 0 else ANOMALY,
                           np.loadtxt(infile, delimiter=',', skiprows=1, usecols=2, dtype=int)))
     else:
@@ -340,3 +327,4 @@ if __name__ == "__main__":
         print("Discarded Anomalies:", discarded_anomalies)
         print("False Positives:", false_pos)
         print("False Negatives:", false_neg)
+
