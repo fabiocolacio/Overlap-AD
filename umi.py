@@ -49,26 +49,23 @@ def in_threshold(point, dset, thresh):
             return True
     return False
 
-def lce(data, min_cluster=2, num_benchmarks=15):
+def lce(data, min_cluster=2, delta=None):
     """Calculates the LCE of a given dataset.
     
     Args:
         data: The data to find the LCE of
         min_cluster: The minimum amount of datapoints needed to form a cluster in one quadrat.
-        num_benchmarks: The maximum number of times to halve the quadrat size.
+        delta: The quadrat size (as a percentage), or None.
     Returns:
-        An array of size num_benchmarks containing the lce for each quadrat size.
+        If a delta value is provided, this will return the lce for the given quadrat size.
+        If delta is None, this will call itself recursively, halving delta each time (starting with delta=1).
+        The returned value will be the smallest non-zero LCE.
     """
 
-    # Number of dimensions per datapoint
+    ret = 0
     feature_count = len(data[0])
 
-    # Size of a quadrat (halves itself each trial)
-    delta = 1
-
-    lce = np.zeros(num_benchmarks, dtype=int)
-
-    for benchmark in range(num_benchmarks):
+    if delta != None:
         # Contains the number of points in each quadrat
         quadrat_sums = {}
 
@@ -88,11 +85,18 @@ def lce(data, min_cluster=2, num_benchmarks=15):
             product = 1
             for n in range(min_cluster):
                  product *= (value - n)
-            lce[benchmark] += product
-        
-        delta /= 2
+            ret += product
+    else:
+        ret = 1
+        tmp = 1
+        delta = 1
 
-    return lce
+        while tmp > 0:
+            ret = tmp
+            tmp = lce(data, min_cluster, delta)
+            delta = delta / 2
+
+    return ret
 
 def classify(datapoint, trusted_data, last_classification, threshold):
     """Classifies data as NORMAL, ANOMALY, or PENDING.
@@ -140,20 +144,9 @@ def classify(datapoint, trusted_data, last_classification, threshold):
         num_benchmarks = 15
 
         # Find LCE for trusted set and trusted set + new data
-        all_lce = lce(all_data, min_cluster, num_benchmarks)
-        trusted_lce = lce(all_data[:-1], min_cluster, num_benchmarks)
-
-        all_lce_val = 0
-        trusted_lce_val = 0
-        # If all_lce_val > trusted_lce_val, the new data resides in a pre-existing cluster
-        for lce_val in all_lce:
-            if lce_val > 0:
-                all_lce_val = lce_val
-        for lce_val in trusted_lce:
-            if lce_val > 0:
-                trusted_lce_val = lce_val
-
-        clustered = all_lce_val > trusted_lce_val
+        all_lce = lce(all_data)
+        trusted_lce = lce(all_data[:-1])
+        clustered = all_lce > trusted_lce
 
         if clustered:
             classification = NORMAL
