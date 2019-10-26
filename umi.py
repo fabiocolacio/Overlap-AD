@@ -220,7 +220,7 @@ def test(data, labels, window_size, threshold):
     """
     data_iter = iter(data)
 
-    fp, fn = 0, 0
+    tp, tn, fp, fn = 0, 0, 0, 0
 
     # Extract trusted data from data.
     # Skips data with anomalous label.
@@ -237,14 +237,18 @@ def test(data, labels, window_size, threshold):
             taken_data += 1
 
     for r, _ in classifier(data_iter, trusted_data, threshold):
-        print("point classified as", "anomaly" if r == ANOMALY else "normal")
         if r == ANOMALY != labels[i - 1]:
             fp += 1
         elif r == NORMAL != labels[i - 1]:
             fn += 1
+        elif r == ANOMALY == labels[i - 1]:
+            tp += 1
+        elif r == NORMAL == labels[i - 1]:
+            tn += 1
+
         i += 1
 
-    return (fp, fn, skipped_anomalies)
+    return (tp, tn, fp, fn, skipped_anomalies)
 
 if __name__ == "__main__":
     import os
@@ -312,7 +316,7 @@ if __name__ == "__main__":
         print("No format specified! Run with --help for more info.")
         os.exit(1)
 
-    false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
+    true_pos, true_neg, false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
 
     accu = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
     pre = true_pos / (true_pos + false_pos)
@@ -335,6 +339,8 @@ if __name__ == "__main__":
             discarded_anomalies))
     else:
         print("Discarded Anomalies:", discarded_anomalies)
+        print("True Positives:", true_pos)
+        print("True Negatives:", true_neg)
         print("False Positives:", false_pos)
         print("False Negatives:", false_neg)
         print("Accu:", accu)
