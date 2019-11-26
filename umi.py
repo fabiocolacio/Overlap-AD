@@ -290,10 +290,10 @@ if __name__ == "__main__":
             anomalies = json.loads(labels_raw)["realTweets/Twitter_volume_%s.csv" % (args.twitter_set)]
             labels = list(map(lambda x: ANOMALY if x in anomalies else NORMAL, timestamps))
     elif args.SWaT:
-        data_raw = np.loadtxt(infile, delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
-        rows, cols = data_raw.shape
-        labels = list(map(lambda x: NORMAL if x == 1.0 else ANOMALY, data_raw[:, cols-1]))
-        data = data_raw[:, :cols-1]
+        data = np.loadtxt(infile, delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
+        rows, cols = data.shape
+
+        labels = list(map(lambda x: NORMAL if x == "Normal" else ANOMALY, np.loadtxt(infile, delimiter=',', usecols=52, skiprows=2, dtype=str)))
 
         # Scale the data as in Li Dan's implementation
         for i in range(cols - 1):
@@ -316,13 +316,18 @@ if __name__ == "__main__":
         print("No format specified! Run with --help for more info.")
         os.exit(1)
 
+    import sys
+
     true_pos, true_neg, false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
 
+    f1 = 0
     accu = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
     pre = true_pos / (true_pos + false_pos)
     req = true_pos / (true_pos + false_neg)
-    f1 = 2 * ((pre * req) / (pre + req))
     fpr = false_pos / (false_pos + true_neg)
+
+    if pre != 0 and req != 0:
+        f1 = 2 * ((pre * req) / (pre + req))
 
     if csv:
         print("%10s %10d %10f %10s %10s %10s %10s %10s %10s %10s %10s" % (
