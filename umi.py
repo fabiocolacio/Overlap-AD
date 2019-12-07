@@ -251,8 +251,7 @@ def test(data, labels, window_size, threshold):
     return (tp, tn, fp, fn, skipped_anomalies)
 
 if __name__ == "__main__":
-    import os
-
+    import sys
     import argparse
     import json
 
@@ -290,23 +289,45 @@ if __name__ == "__main__":
             anomalies = json.loads(labels_raw)["realTweets/Twitter_volume_%s.csv" % (args.twitter_set)]
             labels = list(map(lambda x: ANOMALY if x in anomalies else NORMAL, timestamps))
     elif args.SWaT:
-        data = np.loadtxt(infile, delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
-        rows, cols = data.shape
-
-        labels = list(map(lambda x: NORMAL if x == "Normal" else ANOMALY, np.loadtxt(infile, delimiter=',', usecols=52, skiprows=2, dtype=str)))
+        normal_data = np.loadtxt('../SWaT/SWaT_Normal.csv', delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
+        attack_data = np.loadtxt('../SWaT/SWaT_Attack.csv', delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
+        attack_labels = list(map(lambda x: NORMAL if x == "Normal" else ANOMALY, np.loadtxt('../SWaT/SWaT_Attack.csv', delimiter=',', usecols=52, skiprows=2, dtype=str)))
 
         # Scale the data as in Li Dan's implementation
-        for i in range(cols - 1):
-            data[:, i] /= max(data[:, i])
-            data[:, i] = 2 * data[:, i] - 1
+        for i in range(attack_data.shape[1] - 1):
+            attack_data[:, i] /= max(attack_data[:, i])
+            attack_data[:, i] = 2 * attack_data[:, i] - 1
+            normal_data[:, i] /= max(normal_data[:, i])
+            normal_data[:, i] = 2 * normal_data[:, i] - 1
 
         # Run PCA algorithm to reduce to 5 dimensions
         from sklearn.decomposition import PCA
         num_signals = 5
+        # Reduce dimensions on normal data
         pca = PCA(n_components=num_signals,svd_solver='full')
-        pca.fit(data)
+        pca.fit(normal_data)
         pc = pca.components_
-        data = np.matmul(data, pc.transpose(1, 0))
+        normal_data = np.matmul(normal_data, pc.transpose(1, 0))
+        # Reduce dimensions on attack data
+        pca = PCA(n_components=num_signals,svd_solver='full')
+        pca.fit(attack_data)
+        pc = pca.components_
+        attack_data = np.matmul(attack_data, pc.transpose(1, 0))
+
+        normal_samples = normal_data.shape[0] 
+        attack_samples = attack_data.shape[0]
+        first_normal = normal_samples - (trusted_size * 10)
+
+        # Downsample data, taking the median
+        # from every 10 seconds of data
+        step_size = 10
+        attack_samples = attack_samples // step_size
+        attack_data = [attack_data[i * step_size] for i in range(attack_samples)]
+        attack_labels = [attack_labels[i * step_size] for i in range(attack_samples)]
+        normal_data = [normal_data[first_normal + (i * step_size)] for i in range(trusted_size)]
+
+        data = np.array(normal_data + attack_data)
+        labels = ([NORMAL] * len(normal_data)) + attack_labels
     elif args.yahoo:
         data = list(map(lambda x: np.array([x]),
                    np.loadtxt(infile, delimiter=',', skiprows=1, usecols=1, dtype=float)))
@@ -314,10 +335,11 @@ if __name__ == "__main__":
                           np.loadtxt(infile, delimiter=',', skiprows=1, usecols=2, dtype=int)))
     else:
         print("No format specified! Run with --help for more info.")
-        os.exit(1)
+        sys.exit(1)
 
-    import sys
-
+    print("data shape", data.shape)
+    print("label shape", len(labels))
+    
     true_pos, true_neg, false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
 
     f1 = 0
