@@ -254,6 +254,7 @@ if __name__ == "__main__":
     import sys
     import argparse
     import json
+    import time
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-if', '--infile', dest='infile', type=str, help='Path to the dataset to test')
@@ -339,8 +340,12 @@ if __name__ == "__main__":
 
     print("data shape", data.shape)
     print("label shape", len(labels))
-    
+
+    start_time = time.process_time_ns()
     true_pos, true_neg, false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
+    end_time = time.process_time_ns()
+
+    elapsed = end_time - start_time
 
     f1 = 0
     accu = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
@@ -352,10 +357,12 @@ if __name__ == "__main__":
         f1 = 2 * ((pre * req) / (pre + req))
 
     if csv:
-        print("%10s %10d %10f %10s %10s %10s %10s %10s %10s %10s %10s" % (
-            os.path.basename(infile),
+        print("%10d %10d %10f %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % (
+            elapsed,
             trusted_size,
             threshold,
+            true_pos,
+            true_neg,
             false_pos,
             false_neg,
             accu,
@@ -365,6 +372,7 @@ if __name__ == "__main__":
             fpr,
             discarded_anomalies))
     else:
+        print("Elapsed:", elapsed)
         print("Discarded Anomalies:", discarded_anomalies)
         print("True Positives:", true_pos)
         print("True Negatives:", true_neg)
