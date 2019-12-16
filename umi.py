@@ -338,9 +338,6 @@ if __name__ == "__main__":
         print("No format specified! Run with --help for more info.")
         sys.exit(1)
 
-    print("data shape", data.shape)
-    print("label shape", len(labels))
-
     start_time = time.process_time_ns()
     true_pos, true_neg, false_pos, false_neg, discarded_anomalies = test(data, labels, trusted_size, threshold)
     end_time = time.process_time_ns()
