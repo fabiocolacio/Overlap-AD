@@ -263,9 +263,11 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show detailed output while test is running')
     parser.add_argument('-c', '--csv', dest='csv', action='store_true', help='Format the program output into csv fomat: (filename,trusted size,threshold,false positives, false negatives,discarded anomalies')
     parser.add_argument('--twitter', dest='twitter_set',type=str, help='The dataset to use if using twitter (eg. AAPL, GOOG, etc)')
+    parser.add_argument('--aws', dest='aws_set', type=str, help='The dataset to use if using aws.')
     parser.add_argument('--yahoo', dest='yahoo', action='store_true', help='Set this flag to parse the csv as a yahoo A1Benchmark')
     parser.add_argument('--SWaT', dest='SWaT', action='store_true', help='Set this flag to parse the csv as the SWaT data set')
     parser.set_defaults(twitter_set=False)
+    parser.set_defaults(aws_set=False)
     parser.set_defaults(yahoo=False)
     parser.set_defaults(SWaT=False)
     parser.set_defaults(verbose=False)
@@ -288,6 +290,17 @@ if __name__ == "__main__":
             timestamps = np.loadtxt(open(DATA_PATH % (args.twitter_set), 'rb'), delimiter=",", skiprows=1, usecols=0, dtype=str)
             labels_raw = fh.read()
             anomalies = json.loads(labels_raw)["realTweets/Twitter_volume_%s.csv" % (args.twitter_set)]
+            labels = list(map(lambda x: ANOMALY if x in anomalies else NORMAL, timestamps))
+    elif args.aws_set:
+        DATA_PATH = './nab/realAWSCloudwatch/%s.csv'
+
+        data = list(map(lambda x: np.array([x]),
+                        np.loadtxt(open(DATA_PATH % (args.aws_set), 'rb'), delimiter=",", skiprows=1, usecols=1, dtype=int)))
+        
+        with open("labels/combined_labels.json") as fh:
+            timestamps = np.loadtxt(open(DATA_PATH % (args.aws_set), 'rb'), delimiter=",", skiprows=1, usecols=0, dtype=str)
+            labels_raw = fh.read()
+            anomalies = json.loads(labels_raw)["realAWSCloudwatch/%s.csv" % (args.aws_set)]
             labels = list(map(lambda x: ANOMALY if x in anomalies else NORMAL, timestamps))
     elif args.SWaT:
         normal_data = np.loadtxt('../SWaT/SWaT_Normal.csv', delimiter=',', usecols=range(1,52), skiprows=2, dtype=float)
