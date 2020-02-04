@@ -292,10 +292,10 @@ if __name__ == "__main__":
             anomalies = json.loads(labels_raw)["realTweets/Twitter_volume_%s.csv" % (args.twitter_set)]
             labels = list(map(lambda x: ANOMALY if x in anomalies else NORMAL, timestamps))
     elif args.aws_set:
-        DATA_PATH = './nab/realAWSCloudwatch/%s.csv'
+        DATA_PATH = './nab/realAWSCloudwatch/realAWSCloudwatch/%s.csv'
 
         data = list(map(lambda x: np.array([x]),
-                        np.loadtxt(open(DATA_PATH % (args.aws_set), 'rb'), delimiter=",", skiprows=1, usecols=1, dtype=int)))
+                        np.loadtxt(open(DATA_PATH % (args.aws_set), 'rb'), delimiter=",", skiprows=1, usecols=1, dtype=float)))
         
         with open("labels/combined_labels.json") as fh:
             timestamps = np.loadtxt(open(DATA_PATH % (args.aws_set), 'rb'), delimiter=",", skiprows=1, usecols=0, dtype=str)
@@ -356,12 +356,25 @@ if __name__ == "__main__":
     end_time = time.process_time_ns()
 
     elapsed = end_time - start_time
-
-    f1 = 0
     accu = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
-    pre = true_pos / (true_pos + false_pos)
-    req = true_pos / (true_pos + false_neg)
-    fpr = false_pos / (false_pos + true_neg)
+
+    total_pos = true_pos + false_pos
+    total_anomalies = true_pos + false_neg
+    total_normal = false_pos + true_neg
+
+    f1 = -1
+    pre = -1
+    req = -1
+    fpr = -1
+
+    if total_pos != 0:
+        pre = true_pos / total_pos
+    
+    if total_anomalies != 0:
+        req = true_pos / total_anomalies
+    
+    if total_normal != 0:
+        fpr = false_pos / total_normal
 
     if pre != 0 and req != 0:
         f1 = 2 * ((pre * req) / (pre + req))
