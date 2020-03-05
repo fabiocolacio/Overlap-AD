@@ -378,7 +378,7 @@ if __name__ == "__main__":
         f1 = 2 * ((pre * req) / (pre + req))
 
     if csv:
-        print("%10d %10d %10f %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % (
+        print("%10d,%10d,%10f,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s,%10s" % (
             elapsed,
             trusted_size,
             threshold,
