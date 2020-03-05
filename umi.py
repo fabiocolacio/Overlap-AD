@@ -79,8 +79,6 @@ def lce(data, min_cluster=2, delta=None):
 
         # Solve n!/(n - m)! for each quadrat, and add to LCE
         for key, value in quadrat_sums.items():
-            print(key, value, delta)
-
             if value < min_cluster:
                 continue
 
