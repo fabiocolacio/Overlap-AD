@@ -144,9 +144,9 @@ def classify(datapoint, trusted_data, last_classification, threshold):
         min_cluster = 2
 
         # Find LCE for trusted set and trusted set + new data
-        l_a, d_a = lce(all_data)
-        l_t, d_t = lce(all_data[:-1])
-        clustered = (( all_lce > trusted_lce ) or ( d_a < d_t ))
+        lce_a, delta_a = lce(all_data)
+        lce_t, delta_t = lce(all_data[:-1])
+        clustered = (( lce_a > lce_t ) or ( delta_a < delta_t ))
 
         if clustered:
             classification = NORMAL
