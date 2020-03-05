@@ -79,6 +79,8 @@ def lce(data, min_cluster=2, delta=None):
 
         # Solve n!/(n - m)! for each quadrat, and add to LCE
         for key, value in quadrat_sums.items():
+            print(key, value, delta)
+
             if value < min_cluster:
                 continue
 
@@ -89,14 +91,15 @@ def lce(data, min_cluster=2, delta=None):
     else:
         ret = 1
         tmp = 1
-        delta = 1
+        tmpd = 2
 
         while tmp > 0:
             ret = tmp
-            tmp = lce(data, min_cluster, delta)
-            delta = delta / 2
+            delta = tmpd
 
-    return ret
+            tmp, tmpd = lce(data, min_cluster, delta / 2)
+
+    return ret, delta
 
 def classify(datapoint, trusted_data, last_classification, threshold):
     """Classifies data as NORMAL, ANOMALY, or PENDING.
@@ -140,13 +143,10 @@ def classify(datapoint, trusted_data, last_classification, threshold):
         # Minimum cluster size
         min_cluster = 2
 
-        # Number of times to divide quadrat size
-        num_benchmarks = 15
-
         # Find LCE for trusted set and trusted set + new data
-        all_lce = lce(all_data)
-        trusted_lce = lce(all_data[:-1])
-        clustered = all_lce > trusted_lce
+        l_a, d_a = lce(all_data)
+        l_t, d_t = lce(all_data[:-1])
+        clustered = (( all_lce > trusted_lce ) or ( d_a < d_t ))
 
         if clustered:
             classification = NORMAL
@@ -224,7 +224,7 @@ def test(data, labels, window_size, threshold):
 
     # Extract trusted data from data.
     # Skips data with anomalous label.
-    trusted_data = deque(maxlen=window_size)
+    trusted_data = deque(maxlen=window_size + 2)
     i, taken_data, skipped_anomalies = 0, 0, 0
     for value in data_iter:
         i = taken_data + skipped_anomalies
