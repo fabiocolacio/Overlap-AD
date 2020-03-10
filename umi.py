@@ -87,15 +87,17 @@ def lce(data, min_cluster=2, delta=None):
                  product *= (value - n)
             ret += product
     else:
+        benchmark = 1
+        delta = 1
         ret = 1
         tmp = 1
-        tmpd = 2
+        tmpd = 1
 
         while tmp > 0:
             ret = tmp
             delta = tmpd
 
-            tmp, tmpd = lce(data, min_cluster, delta / 2)
+            tmp, tmpd = lce(data, min_cluster, (2 ** -benchmark))
 
     return ret, delta
 
