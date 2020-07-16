@@ -107,9 +107,9 @@ class Window:
         while tmpl > 0:
             l = tmpl
             d = tmpd
-            
-            tmpl = lce_func(tmpd)
+
             tmpd /= 2
+            tmpl = lce_func(tmpd)
 
         if d > self.delta:
             tmp = d / 2
@@ -143,6 +143,7 @@ class Window:
     def min_lce(self):
         if self.delta != None and self.delta in self.lce:
             return self.lce[self.delta], self.delta
+        print("Full")
         return self.min_lce_full()
 
 def euclidean_dist(a, b):
@@ -157,6 +158,7 @@ def classify(sample, window, last_class, threshold):
     new_class = Unclassified
 
     if any(map(lambda other: in_threshold(sample, other, threshold), window.samples)):
+        print("In Threshold!")
         new_class = Normal
     else:
         trusted_lce, trusted_delta = window.min_lce()
@@ -165,14 +167,17 @@ def classify(sample, window, last_class, threshold):
         clustered = trusted_lce < total_lce or \
             total_delta < trusted_delta
 
+        print("Trusted LCE:", trusted_lce, "Trusted Delta:", trusted_delta)
+        print("Total LCE:", total_lce, "Total Delta:", total_delta)
+        print("Clustered:", clustered)
+        
         if clustered:
             new_class = Normal
         else:
             new_class = Pending
 
     if last_class == Pending:
-        revision = Normal if new_class == Normal \
-            else Anomaly
+        revision = Normal if new_class == Normal else Anomaly
 
     if new_class == Normal:
         window.min_lce_popleft()
@@ -181,8 +186,12 @@ def classify(sample, window, last_class, threshold):
         window.min_lce_popleft()
 
     if revision == Anomaly:
-        window.min_lce_popleft()
+        window.min_lce_pop()
+        window.min_lce_append(sample)
 
+    print("window size:", len(window.samples))
+    print()
+    
     return revision, new_class
 
 def main():
@@ -227,6 +236,9 @@ def main():
     
     window = Window(data[:args.win_size])
     window.min_lce()
+    print(window.lce)
+    print(window.lce[window.delta])
+    print(window.delta)
     
     tp, tn, fp, fn = 0, 0, 0, 0
     last_class = Normal
