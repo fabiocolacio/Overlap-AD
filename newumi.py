@@ -16,7 +16,7 @@ class Window:
         self.delta = 1
         self.quadrats = {}
 
-        self.samples = collections.deque(data)
+        self.samples = collections.deque()
         self.sample_set = set()
         self.instances = collections.defaultdict(int)
         
@@ -158,7 +158,7 @@ def classify(sample, window, last_class, threshold):
     new_class = Unclassified
 
     if any(map(lambda other: in_threshold(sample, other, threshold), window.samples)):
-        print("In Threshold!")
+        window.min_lce_append(sample)
         new_class = Normal
     else:
         trusted_lce, trusted_delta = window.min_lce()
@@ -233,12 +233,14 @@ def main():
     else:
         println("Please specify a dataset to run.")
         sys.exit(1)
-    
+
     window = Window(data[:args.win_size])
     window.min_lce()
     print(window.lce)
     print(window.lce[window.delta])
     print(window.delta)
+    print(len(window.samples))
+    print(args.win_size)
     
     tp, tn, fp, fn = 0, 0, 0, 0
     last_class = Normal
