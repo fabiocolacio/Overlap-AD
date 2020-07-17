@@ -143,7 +143,6 @@ class Window:
     def min_lce(self):
         if self.delta != None and self.delta in self.lce:
             return self.lce[self.delta], self.delta
-        print("Full")
         return self.min_lce_full()
 
 def euclidean_dist(a, b):
@@ -167,10 +166,6 @@ def classify(sample, window, last_class, threshold):
         clustered = trusted_lce < total_lce or \
             total_delta < trusted_delta
 
-        print("Trusted LCE:", trusted_lce, "Trusted Delta:", trusted_delta)
-        print("Total LCE:", total_lce, "Total Delta:", total_delta)
-        print("Clustered:", clustered)
-        
         if clustered:
             new_class = Normal
         else:
@@ -179,18 +174,16 @@ def classify(sample, window, last_class, threshold):
     if last_class == Pending:
         revision = Normal if new_class == Normal else Anomaly
 
+        if revision == Normal:
+            window.min_lce_popleft()
+
+        if revision == Anomaly:
+            window.min_lce_pop()
+            window.min_lce_pop()
+            window.min_lce_append(sample)
+
     if new_class == Normal:
         window.min_lce_popleft()
-
-    if last_class == Pending and revision == Normal:
-        window.min_lce_popleft()
-
-    if revision == Anomaly:
-        window.min_lce_pop()
-        window.min_lce_append(sample)
-
-    print("window size:", len(window.samples))
-    print()
     
     return revision, new_class
 
@@ -231,16 +224,11 @@ def main():
         datafile.close()
         labelsfile.close()
     else:
-        println("Please specify a dataset to run.")
+        print("Please specify a dataset to run.")
         sys.exit(1)
 
     window = Window(data[:args.win_size])
     window.min_lce()
-    print(window.lce)
-    print(window.lce[window.delta])
-    print(window.delta)
-    print(len(window.samples))
-    print(args.win_size)
     
     tp, tn, fp, fn = 0, 0, 0, 0
     last_class = Normal
