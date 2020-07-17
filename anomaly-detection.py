@@ -23,8 +23,12 @@ argparser.add_argument('-a', '--algorithm',
                        help='The algorithm to use for classifications')
 
 argparser.add_argument('--threshold',
-                       type=str, dest='threshold', default=100.0,
+                       type=float, dest='threshold', default=100.0,
                        help="The threshold to use for knn algorithm.")
+
+argparser.add_argument('-k',
+                       type=int, dest='k', default=4,
+                       help="The hyperparameter K for the KNN algorithm.")
 
 args = argparser.parse_args()
 
@@ -61,7 +65,7 @@ if args.algorithm == "knn":
     from sklearn.neighbors import KNeighborsClassifier
     from statistics import mean
 
-    classifier = KNeighborsClassifier().fit(train, train_labels)
+    classifier = KNeighborsClassifier(n_neighbors=args.k).fit(train, train_labels)
 
     def predictor(samples):
         neighbor_dists = classifier.kneighbors(samples)[0]
@@ -103,5 +107,10 @@ def analyze_results(stats, elem):
 
 results = zip(predict(data), labels[args.train_size:])
 stats = functools.reduce(analyze_results, results, (0,0,0,0))
+
+print("{},{},".format(args.twitter, args.train_size), end="")
+
+if args.algorithm == 'knn':
+    print("{},{},".format(args.k, args.threshold), end="")
 
 print(",".join(map(str, stats)))
