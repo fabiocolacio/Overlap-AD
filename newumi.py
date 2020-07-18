@@ -159,7 +159,7 @@ class Window:
         if self.delta != None and self.delta in self.lce:
             return self.lce[self.delta], self.delta
         return self.min_lce_full()
-
+    
 def euclidean_dist(a, b):
     x, y = numpy.array(a), numpy.array(b)
     return numpy.linalg.norm(x - y)
@@ -201,6 +201,52 @@ def classify(sample, window, last_class, threshold):
         window.min_lce_popleft()
     
     return revision, new_class
+
+
+class MorisitaClassifier:
+"""Detect anomalies with the streaming Morisita Index method.
+
+The MorisitaClassifier class provides a scikit-like API for anomaly detection with fit(), and fit_predict().
+"""
+    
+    def __init__(self, threshold=0.0):
+        self.window = None
+        self.threshold = threshold
+        self.last_class = Normal
+
+    def fit(self, samples):
+        """Updates the window and min_lce with the samples provided.
+        
+        samples must be a list or other iterable containing samples of homogenous dimensionality.
+        """
+        
+        self.window = Window(samples)
+        self.window.min_lce()
+        return self
+
+    def fit_predict_stream(self, samples):
+        """Predicts labels for the samples
+
+        Returns a generator providing tuples containing (revision, new_class) pairs
+        where revision is the revised classification of the last sample, and new_class
+        is the classification of the new sample.
+        
+        This function is suitable for streaming use cases where samples is not a finite
+        list and the returned generator can be used in a loop.
+        """
+        
+        for sample in samples:
+            revision, new_class = classify(sample, self.window, self.last_class, self.threshold)
+            self.last_class = revision
+            yield revision, new_class
+
+    def fit_predict(self, samples):
+        """Like fit_predict_stream() but returns a finite list.
+
+        This is sugar of list(fit_predict_stream(samples)) and is provided
+        for compatibility with the scikit API for anomaly detection.
+        """
+        return list(fit_predict_stream(samples))
 
 def main():
     import argparse
