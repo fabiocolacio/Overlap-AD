@@ -204,10 +204,10 @@ def classify(sample, window, last_class, threshold):
 
 
 class MorisitaClassifier:
-"""Detect anomalies with the streaming Morisita Index method.
+    """Detect anomalies with the streaming Morisita Index method.
 
-The MorisitaClassifier class provides a scikit-like API for anomaly detection with fit(), and fit_predict().
-"""
+    The MorisitaClassifier class provides a scikit-like API for anomaly detection with fit(), and fit_predict().
+    """
     
     def __init__(self, threshold=0.0):
         self.window = None
@@ -237,7 +237,7 @@ The MorisitaClassifier class provides a scikit-like API for anomaly detection wi
         
         for sample in samples:
             revision, new_class = classify(sample, self.window, self.last_class, self.threshold)
-            self.last_class = revision
+            self.last_class = new_class
             yield revision, new_class
 
     def fit_predict(self, samples):
@@ -288,29 +288,35 @@ def main():
         print("Please specify a dataset to run.")
         sys.exit(1)
 
-    window = Window(data[:args.win_size])
-    window.min_lce()
-    
+
+    classifier = MorisitaClassifier(args.thresh).fit(data[:args.win_size])
+
     tp, tn, fp, fn = 0, 0, 0, 0
-    last_class = Normal
+    i = args.win_size
 
-    for i in range(args.win_size, len(data)):
-        sample = data[i]
-        last_label = labels[i - 1]
-        
-        revision, last_class = classify(sample, window, last_class, args.thresh)
-
-        if revision == Anomaly == last_label:
+    for revision, new_class in classifier.fit_predict_stream(data[args.win_size:]):
+        if revision == labels[i - 1] == Anomaly:
             tp += 1
-        elif revision == Normal == last_label:
+        elif revision == labels[i - 1] == Normal:
             tn += 1
         elif revision == Anomaly:
             fp += 1
-        else:
+        elif revision == Normal:
             fn += 1
 
+        if i == len(labels) - 1:
+            if new_class == Pending and labels[i] == Anomaly:
+                tp += 1
+            elif new_class == Normal and labels[i] == Normal:
+                tn += 1
+            elif new_class == Pending:
+                fp += 1
+            else:
+                fn += 1
+                
+        i += 1
+
     print("{},{},{},{}".format(tp,tn,fp,fn))
-        
 
 if __name__ == '__main__':
     main()
