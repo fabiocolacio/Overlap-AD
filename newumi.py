@@ -246,10 +246,11 @@ class MorisitaClassifier:
         This is sugar of list(fit_predict_stream(samples)) and is provided
         for compatibility with the scikit API for anomaly detection.
         """
-        return list(fit_predict_stream(samples))
+        return list(self.fit_predict_stream(samples))
 
 def main():
     import argparse
+    import time
 
     argparser = argparse.ArgumentParser()
 
@@ -262,6 +263,12 @@ def main():
     argparser.add_argument('--twitter', type=str, dest='twitter', default=None,
                            help='The twitter dataset to run the test on (AAPL, GOOG, etc)')
 
+    argparser.add_argument('-if', '--infile', dest='infile', type=str,
+                           help='Path to the dataset to test.')
+    
+    argparser.add_argument('--yahoo', dest='yahoo', default=False, action='store_true',
+                           help='Parse the file as a yahoo benchmark.')
+    
     args = argparser.parse_args()
 
     data = None
@@ -275,29 +282,56 @@ def main():
         datafile = open(datapath, 'rb')
         labelsfile = open(labelspath, 'rb')
 
-        data = list(map(lambda x: (x / 470,),
-                    numpy.loadtxt(datafile, delimiter=',', skiprows=1, usecols=1, dtype=int)))
+        data = numpy.loadtxt(datafile, delimiter=',', skiprows=1, usecols=1, dtype=int)
+        gmax = max(data)
+        data = list(map(lambda x: (x / gmax,), data))
         datafile.seek(0)
+        
         timestamps = numpy.loadtxt(datapath, delimiter=',', skiprows=1, usecols=0, dtype=str)
         anomalies = json.loads(labelsfile.read())[labelskey]
         labels = list(map(lambda timestamp: Anomaly if timestamp in anomalies else Normal, timestamps))
-        
+                
         datafile.close()
         labelsfile.close()
+    elif args.yahoo:
+        data = numpy.loadtxt(args.infile, delimiter=',', skiprows=1, usecols=1, dtype=float)
+        gmax = max(data)
+        data = list(map(lambda x: (x / gmax,), data))
+        
+        labels = list(map(lambda x: Normal if x == 0 else Anomaly,
+                          numpy.loadtxt(args.infile, delimiter=',', skiprows=1, usecols=2, dtype=int)))
     else:
         print("Please specify a dataset to run.")
         sys.exit(1)
 
+    idx = 0
+    window_samples = []
+    while len(window_samples) < args.win_size:
+        if labels[idx] == Normal:
+            window_samples.append(data[idx])
+        idx += 1
+    data = data[idx:]
+    labels = labels[idx:]
 
-    classifier = MorisitaClassifier(args.thresh).fit(data[:args.win_size])
+    start_time = time.process_time_ns()
+    
+    classifier = MorisitaClassifier(args.thresh).fit(window_samples)
+    predictions = classifier.fit_predict(data)
+    
+    end_time = time.process_time_ns()
+    elapsed = end_time - start_time
 
     tp, tn, fp, fn = 0, 0, 0, 0
-    i = args.win_size
-
-    for revision, new_class in classifier.fit_predict_stream(data[args.win_size:]):
-        if revision == labels[i - 1] == Anomaly:
+    last_label = Normal
+    for i in range(len(predictions)):
+        revision, new_class = predictions[i]
+        
+        this_label = labels[i]
+        last_label = Normal if i == 0 else labels[i - 1]
+        
+        if revision == last_label == Anomaly:
             tp += 1
-        elif revision == labels[i - 1] == Normal:
+        elif revision == last_label == Normal:
             tn += 1
         elif revision == Anomaly:
             fp += 1
@@ -305,9 +339,9 @@ def main():
             fn += 1
 
         if i == len(labels) - 1:
-            if new_class == Pending and labels[i] == Anomaly:
+            if new_class == Pending and this_label == Anomaly:
                 tp += 1
-            elif new_class == Normal and labels[i] == Normal:
+            elif new_class == Normal and this_label == Normal:
                 tn += 1
             elif new_class == Pending:
                 fp += 1
@@ -316,7 +350,7 @@ def main():
                 
         i += 1
 
-    print("{},{},{},{}".format(tp,tn,fp,fn))
+    print("{},{},{},{},{},{},{},{:.2f}".format(args.twitter,args.win_size,args.thresh,tp,tn,fp,fn,elapsed / 1000000000))
 
 if __name__ == '__main__':
     main()
