@@ -171,7 +171,7 @@ def classify(sample, window, last_class, threshold):
     revision = last_class
     new_class = Unclassified
 
-    if any(map(lambda other: in_threshold(sample, other, threshold), window.samples)):
+    if sample in window.sample_set or (threshold > 0 and any(map(lambda other: in_threshold(sample, other, threshold), window.samples))):
         window.min_lce_append(sample)
         new_class = Normal
     else:
@@ -350,7 +350,8 @@ def main():
                 
         i += 1
 
-    print("{},{},{},{},{},{},{},{:.2f}".format(args.twitter,args.win_size,args.thresh,tp,tn,fp,fn,elapsed / 1000000000))
+    dset = args.twitter if args.twitter != None else args.infile
+    print("{},{},{},{},{},{},{:.2f},{}".format(dset,args.win_size,tp,tn,fp,fn,elapsed / 1000000000,args.thresh))
 
 if __name__ == '__main__':
     main()
