@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import json
 import numpy
 import argparse
@@ -9,6 +10,12 @@ Normal = 1
 Anomaly = -1
 
 argparser = argparse.ArgumentParser()
+
+argparser.add_argument('-if', '--infile', dest='infile', type=str,
+                       help='Path to the dataset to test.')
+
+argparser.add_argument('--yahoo', dest='yahoo', default=False, action='store_true',
+                       help='Parse the file as a yahoo benchmark.')
 
 argparser.add_argument('--twitter',
         type=str, dest='twitter', default=None,
@@ -55,11 +62,23 @@ if args.twitter:
     train_labels = labels[:args.train_size]
     data = data[args.train_size:]
     data_labels = labels[args.train_size:]
+elif args.yahoo:
+    data = numpy.array(list(map(lambda sample: [sample],
+                                numpy.loadtxt(args.infile, delimiter=',', skiprows=1, usecols=1, dtype=float))))
+    labels = list(map(lambda x: Normal if x == 0 else Anomaly,
+                      numpy.loadtxt(args.infile, delimiter=',', skiprows=1, usecols=2, dtype=int)))
+
+    train = data[:args.train_size]
+    train_labels = labels[:args.train_size]
+    data = data[args.train_size:]
+    data_labels = labels[args.train_size:]
 
 predict = None
 
 def euclidean_distance(a,b):
     return numpy.lihnalg.norm(a - b)
+
+time_start = time.process_time_ns()
 
 if args.algorithm == "knn":
     from sklearn.neighbors import KNeighborsClassifier
@@ -106,11 +125,19 @@ def analyze_results(stats, elem):
         return (tp, tn, fp, fn + 1)
 
 results = zip(predict(data), labels[args.train_size:])
+
+time_end = time.process_time_ns()
+elapsed = time_end - time_start
+
 stats = functools.reduce(analyze_results, results, (0,0,0,0))
 
-print("{},{},".format(args.twitter, args.train_size), end="")
+dset = args.twitter if args.twitter != None else args.infile
+
+print("{},{}".format(dset, args.train_size), end=",")
+print(",".join(map(str, stats)), end=",")
+print("{:.2f},".format(elapsed/1000000000), end=",")
 
 if args.algorithm == 'knn':
-    print("{},{},".format(args.k, args.threshold), end="")
+    print("{},{}".format(args.k, args.threshold), end="")
 
-print(",".join(map(str, stats)))
+print()
