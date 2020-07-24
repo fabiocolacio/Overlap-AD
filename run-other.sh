@@ -8,7 +8,7 @@ then
     max_jobs="$1"
 fi
 
-algos=(knn svm naive-bayes decision-tree)
+algos=(random-forest) #knn svm naive-bayes decision-tree)
 wins=$(echo 5; echo 10; seq 50 50 500)
 
 mkdir -p results

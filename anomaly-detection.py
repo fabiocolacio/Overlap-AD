@@ -107,6 +107,16 @@ elif args.algorithm == "decision-tree":
 
     classifier = DecisionTreeClassifier().fit(train, train_labels)
     predict = classifier.predict
+elif args.algorithm == "random-forest":
+    from sklearn.ensemble import RandomForestClassifier
+
+    classifier = RandomForestClassifier().fit(train, train_labels)
+    predict = classifier.predict
+elif args.algorithm == "lof":
+    from sklearn.neighbors import LocalOutlierFactor
+
+    classifier = LocalOutlierFactor(n_neighbors=args.k).fit(train)
+    predict = classifier.fit_predict
 else:
     print("No valid algorithms specified.")
     sys.exit(1)
