@@ -8,7 +8,7 @@ then
     max_jobs="$1"
 fi
 
-algos=(random-forest) #knn svm naive-bayes decision-tree)
+algos=(moving-average) # random-forest knn svm naive-bayes decision-tree)
 wins=$(echo 5; echo 10; seq 50 50 500)
 
 mkdir -p results
@@ -55,7 +55,22 @@ twitter() {
 
 		    manage_jobs
 		done
-	    done	    	    
+	    done
+	elif [ "$algo" = "moving-average" ]
+	then
+	    moving_average_threshs=$(seq 1 5)
+
+	    for moving_average_thresh in ${moving_average_threshs[@]}
+	    do
+		./anomaly-detection.py \
+		    --algorithm "$algo" \
+		    --train "$win" \
+		    --threshold "$moving_average_thresh" \
+		    --twitter "$dset" \
+		    >> "$outfile" &
+
+		manage_jobs
+	    done
 	else
 	    ./anomaly-detection.py \
 		--algorithm "$algo" \
@@ -102,7 +117,23 @@ yahoo() {
 
 		    manage_jobs
 		done
-	    done	    	    
+	    done
+	elif [ "$algo" = "moving-average" ]
+	then
+	    moving_average_threshs=$(seq 1 5)
+
+	    for moving_average_thresh in ${moving_average_threshs[@]}
+	    do
+		./anomaly-detection.py \
+		    --algorithm "$algo" \
+		    --train "$win" \
+		    --threshold "$moving_average_thresh" \
+		    --yahoo \
+		    -if "A1Benchmark/$dset.csv" \
+		    >> "$outfile" &
+
+		manage_jobs
+	    done
 	else
 	    ./anomaly-detection.py \
 		--algorithm "$algo" \

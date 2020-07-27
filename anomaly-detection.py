@@ -117,6 +117,13 @@ elif args.algorithm == "lof":
 
     classifier = LocalOutlierFactor(n_neighbors=args.k).fit(train)
     predict = classifier.fit_predict
+elif args.algorithm == "moving-average":
+    from classifiers import MovingAverageClassifier
+
+    data = list(map(lambda x: x[0], data))
+    train = list(map(lambda x: x[0], train))
+    classifier = MovingAverageClassifier(args.threshold).fit(train)
+    predict = classifier.fit_predict
 else:
     print("No valid algorithms specified.")
     sys.exit(1)
@@ -145,9 +152,9 @@ dset = args.twitter if args.twitter != None else args.infile
 
 print("{},{}".format(dset, args.train_size), end=",")
 print(",".join(map(str, stats)), end=",")
-print("{:.2f},".format(elapsed/1000000000), end=",")
+print("{:.2f}".format(elapsed/1000000000), end="")
 
 if args.algorithm == 'knn':
-    print("{},{}".format(args.k, args.threshold), end="")
+    print(",{},{}".format(args.k, args.threshold), end="")
 
 print()
