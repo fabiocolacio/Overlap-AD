@@ -8,7 +8,7 @@ then
     max_jobs="$1"
 fi
 
-algos=(moving-average) # random-forest knn svm naive-bayes decision-tree)
+algos=(lof moving-average random-forest knn svm naive-bayes decision-tree)
 wins=$(echo 5; echo 10; seq 50 50 500)
 
 mkdir -p results
@@ -55,6 +55,26 @@ twitter() {
 
 		    manage_jobs
 		done
+	    done
+	elif [ "$algo" = "lof" ]
+	then
+	    lof_k_max=20
+
+	    if [ "$lof_k_max" -gt "$win" ]
+	    then
+		lof_k_max="$win"
+	    fi
+	    
+	    lof_ks=$(seq 5 5 $lof_k_max)
+
+	    for lof_k in ${lof_ks[@]}
+	    do
+		./anomaly-detection.py \
+		    --algorithm "$algo" \
+		    --train "$win" \
+		    -k "$lof_k" \
+		    --twitter "$dset" \
+		    >> "$outfile" &
 	    done
 	elif [ "$algo" = "moving-average" ]
 	then
@@ -117,6 +137,27 @@ yahoo() {
 
 		    manage_jobs
 		done
+	    done
+	elif [ "$algo" = "lof" ]
+	then
+	    lof_k_max=20
+
+	    if [ "$lof_k_max" -gt "$win" ]
+	    then
+		lof_k_max="$win"
+	    fi
+	    
+	    lof_ks=$(seq 5 5 $lof_k_max)
+
+	    for lof_k in ${lof_ks[@]}
+	    do
+		./anomaly-detection.py \
+		    --algorithm "$algo" \
+		    --train "$win" \
+		    -k "$lof_k" \
+		    -if "A1Benchmark/$dset.csv" \
+		    --yahoo \
+		    >> "$outfile" &
 	    done
 	elif [ "$algo" = "moving-average" ]
 	then
