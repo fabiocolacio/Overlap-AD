@@ -150,7 +150,7 @@ stats = functools.reduce(analyze_results, results, (0,0,0,0))
 
 dset = args.twitter if args.twitter != None else args.infile
 
-print("{},{}".format(dset, args.train_size), end=",")
+print("{},{},{}".format(args.algorithm, dset, args.train_size), end=",")
 print(",".join(map(str, stats)), end=",")
 print("{:.2f}".format(elapsed/1000000000), end="")
 

@@ -351,7 +351,7 @@ def main():
         i += 1
 
     dset = args.twitter if args.twitter != None else args.infile
-    print("{},{},{},{},{},{},{:.2f},{}".format(dset,args.win_size,tp,tn,fp,fn,elapsed / 1000000000,args.thresh))
+    print("{},{},{},{},{},{},{},{:.2f},{}".format("mi",dset,args.win_size,tp,tn,fp,fn,elapsed / 1000000000,args.thresh))
 
 if __name__ == '__main__':
     main()
