@@ -19,6 +19,7 @@ import collections
 import sys
 import json
 import numpy
+import scipy.io
 
 Normal = 1
 Anomaly = -1
@@ -251,6 +252,7 @@ class MorisitaClassifier:
 def main():
     import argparse
     import time
+    import functools
 
     argparser = argparse.ArgumentParser()
 
@@ -268,6 +270,9 @@ def main():
     
     argparser.add_argument('--yahoo', dest='yahoo', default=False, action='store_true',
                            help='Parse the file as a yahoo benchmark.')
+
+    argparser.add_argument('--kdd', dest='kdd', default=False, action='store_true',
+                           help='Parse the file as a kdd smtp or http file.')
     
     args = argparser.parse_args()
 
@@ -300,6 +305,17 @@ def main():
         
         labels = list(map(lambda x: Normal if x == 0 else Anomaly,
                           numpy.loadtxt(args.infile, delimiter=',', skiprows=1, usecols=2, dtype=int)))
+    elif args.kdd:
+        import h5py
+
+        handle = h5py.File(args.infile, 'r')
+        data = handle['X']
+        data = list(zip(data[0], data[1], data[2]))
+        gmin = functools.reduce(lambda v, s: (min(v[0],s[0]), min(v[1],s[1]), min(v[2],s[2])), data)
+        data = list(map(lambda s: (s[0] - gmin[0], s[1] - gmin[1], s[2] - gmin[2]), data))
+        gmax = functools.reduce(lambda v, s: (max(v[0],s[0]), max(v[1],s[1]), max(v[2],s[2])), data)
+        data =  list(map(lambda s: (s[0] / gmax[0], s[1] / gmax[1], s[2] / gmax[2]), data))
+        labels = list(map(lambda x: Normal if x == 0.0 else Anomaly, handle['y'][0]))
     else:
         print("Please specify a dataset to run.")
         sys.exit(1)
