@@ -55,12 +55,30 @@ yahoo() {
     done
 }
 
+kdd() {
+    dsets=(smtp.mat http.mat)
+
+    for dset in ${dsets[@]}
+    do
+	outfile="results/mi-$dset.csv"
+
+	./newumi.py --win-size "$win" \
+		    --thresh "$thresh" \
+		    --kdd \
+		    -if "$dset" \
+		    >> "$outfile" &
+
+	manage_jobs
+    done
+}
+
 for win in ${wins[@]}
 do
     for thresh in ${threshs[@]}
     do
-	twitter
-	yahoo
+	# twitter
+	# yahoo
+	kdd
     done
 done
 
