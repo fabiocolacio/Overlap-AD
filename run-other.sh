@@ -158,6 +158,8 @@ yahoo() {
 		    -if "A1Benchmark/$dset.csv" \
 		    --yahoo \
 		    >> "$outfile" &
+
+		manage_jobs
 	    done
 	elif [ "$algo" = "moving-average" ]
 	then
@@ -188,12 +190,101 @@ yahoo() {
     done
 }
 
+kdd() {
+    dsets=(smtp.mat http.mat)
+
+    for dset in ${dsets[@]}
+    do
+	outfile="results/$algo-$dset.csv"
+
+
+	if [ "$algo" = "knn" ]
+	then
+	    knn_max=20
+
+	    if [ "$knn_max" -gt "$win" ]
+	    then
+		knn_max="$win"
+	    fi
+	    
+	    knn_ks=$(seq 5 5 $kmax)
+	    knn_threshs=$(seq 10 10 100)
+
+	    for k in ${knn_ks[@]}
+	    do
+		for thresh in ${knn_threshs[@]}
+		do
+		    ./anomaly-detection.py \
+			--algorithm "$algo" \
+			--train "$win" \
+			--threshold "$thresh" \
+			-k "$k" \
+			--kdd \
+			-if "$dset" \
+			>> "$outfile" &
+
+		    manage_jobs
+		done
+	    done
+	elif [ "$algo" = "lof" ]
+	then
+	    lof_k_max=20
+
+	    if [ "$lof_k_max" -gt "$win" ]
+	    then
+		lof_k_max="$win"
+	    fi
+	    
+	    lof_ks=$(seq 5 5 $lof_k_max)
+
+	    for lof_k in ${lof_ks[@]}
+	    do
+		./anomaly-detection.py \
+		    --algorithm "$algo" \
+		    --train "$win" \
+		    -k "$lof_k" \
+		    -if "$dset" \
+		    --kdd \
+		    >> "$outfile" &
+
+		manage_jobs
+	    done
+	elif [ "$algo" = "moving-average" ]
+	then
+	    moving_average_threshs=$(seq 1 5)
+
+	    for moving_average_thresh in ${moving_average_threshs[@]}
+	    do
+		./anomaly-detection.py \
+		    --algorithm "$algo" \
+		    --train "$win" \
+		    --threshold "$moving_average_thresh" \
+		    --kdd \
+		    -if "$dset" \
+		    >> "$outfile" &
+
+		manage_jobs
+	    done
+	else
+	    ./anomaly-detection.py \
+		--algorithm "$algo" \
+		--train "$win" \
+		--kdd \
+		-if "$dset" \
+		>> "$outfile" &
+
+	    manage_jobs
+	fi
+    done
+}
+
 for algo in ${algos[@]}
 do
     for win in ${wins[@]}
     do
-	twitter
-	yahoo
+	# twitter
+	# yahoo
+	kdd
     done
 done
 

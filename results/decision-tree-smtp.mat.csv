@@ -1,0 +1,12 @@
+decision-tree,smtp.mat,5,0,95121,0,30,0.91
+decision-tree,smtp.mat,10,0,95116,0,30,0.86
+decision-tree,smtp.mat,50,0,95076,0,30,0.88
+decision-tree,smtp.mat,100,0,95026,0,30,0.85
+decision-tree,smtp.mat,150,0,94976,0,30,0.87
+decision-tree,smtp.mat,200,0,94926,0,30,0.73
+decision-tree,smtp.mat,250,0,94876,0,30,1.18
+decision-tree,smtp.mat,300,0,94826,0,30,0.90
+decision-tree,smtp.mat,350,0,94776,0,30,0.93
+decision-tree,smtp.mat,400,0,94726,0,30,0.84
+decision-tree,smtp.mat,450,0,94676,0,30,0.93
+decision-tree,smtp.mat,500,0,94626,0,30,0.94
